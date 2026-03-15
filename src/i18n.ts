@@ -52,12 +52,12 @@ type MessageKey =
 
 type Messages = Record<MessageKey, string>;
 
-export const localeOptions: { value: Locale; label: string }[] = [
-  { value: 'zh-TW', label: '繁體中文' },
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'en', label: 'English' },
-  { value: 'ja', label: '日本語' },
-  { value: 'ko', label: '한국어' },
+export const localeOptions: { value: Locale; label: string; shortLabel: string; icon: string }[] = [
+  { value: 'zh-TW', label: '\u7e41\u9ad4\u4e2d\u6587', shortLabel: '\u7e41\u4e2d', icon: '\uD83C\uDDF9\uD83C\uDDFC' },
+  { value: 'zh-CN', label: '\u7b80\u4f53\u4e2d\u6587', shortLabel: '\u7b80\u4e2d', icon: '\uD83C\uDDE8\uD83C\uDDF3' },
+  { value: 'en', label: 'English', shortLabel: 'EN', icon: '\uD83C\uDDFA\uD83C\uDDF8' },
+  { value: 'ja', label: '\u65e5\u672c\u8a9e', shortLabel: '\u65e5\u672c\u8a9e', icon: '\uD83C\uDDEF\uD83C\uDDF5' },
+  { value: 'ko', label: '\uD55C\uAD6D\uC5B4', shortLabel: '\uD55C\uAD6D\uC5B4', icon: '\uD83C\uDDF0\uD83C\uDDF7' },
 ];
 
 export const messages: Record<Locale, Messages> = {

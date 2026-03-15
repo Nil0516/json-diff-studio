@@ -1,13 +1,13 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent, ReactNode, UIEvent } from 'react';
-import { countDiffNodes, diffValue } from './diff';
-import { localeOptions, t } from './i18n';
-import { defaultSettings, loadSettings, saveSettings } from './storage';
-import type { AppSettings, DiffNode, JsonErrorState, Locale } from './types';
+﻿import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent, ReactNode, UIEvent } from "react";
+import { countDiffNodes, diffValue } from "./diff";
+import { localeOptions, t } from "./i18n";
+import { defaultSettings, loadSettings, saveSettings } from "./storage";
+import type { AppSettings, DiffNode, JsonErrorState, Locale } from "./types";
 
 interface JsonLine {
   marker: string;
-  status: DiffNode['status'];
+  status: DiffNode["status"];
   content: ReactNode;
 }
 
@@ -55,48 +55,60 @@ function sampleSettings(current: AppSettings): AppSettings {
   };
 }
 
-function statusClassName(status: DiffNode['status']) {
+function statusClassName(status: DiffNode["status"]) {
   return `status-${status}`;
 }
 
 function isObjectValue(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatInlineValue(value: unknown) {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return JSON.stringify(value);
   }
 
-  if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
     return String(value);
   }
 
   return JSON.stringify(value);
 }
 
-function getMarker(status: DiffNode['status']) {
-  if (status === 'added') {
-    return '+';
+function getMarker(status: DiffNode["status"]) {
+  if (status === "added") {
+    return "+";
   }
 
-  if (status === 'removed') {
-    return '-';
+  if (status === "removed") {
+    return "-";
   }
 
-  if (status === 'changed' || status === 'type-changed') {
-    return '~';
+  if (status === "changed" || status === "type-changed") {
+    return "~";
   }
 
-  return '';
+  return "";
 }
 
-function renderKeyPrefix(key: string | undefined, isArrayItem: boolean, keyChanged: boolean) {
+function renderKeyPrefix(
+  key: string | undefined,
+  isArrayItem: boolean,
+  keyChanged: boolean,
+) {
   if (!key || isArrayItem) {
     return null;
   }
 
-  return <span className={keyChanged ? 'json-key key-emphasis' : 'json-key'}>{`${JSON.stringify(key)}: `}</span>;
+  return (
+    <span
+      className={keyChanged ? "json-key key-emphasis" : "json-key"}
+    >{`${JSON.stringify(key)}: `}</span>
+  );
 }
 
 function CollapseToggle({
@@ -107,25 +119,33 @@ function CollapseToggle({
   onToggle: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
-    <button type="button" className="collapse-toggle" onClick={onToggle} aria-label={collapsed ? 'Expand' : 'Collapse'}>
-      {collapsed ? '▸' : '▾'}
+    <button
+      type="button"
+      className="collapse-toggle"
+      onClick={onToggle}
+      aria-label={collapsed ? "Expand" : "Collapse"}
+    >
+      {collapsed ? "▸" : "▾"}
     </button>
   );
 }
 
 function buildJsonLines(
   node: DiffNode,
-  side: 'left' | 'right',
+  side: "left" | "right",
   depth: number,
   isLast: boolean,
   collapsedPaths: Set<string>,
   onToggleCollapse: (path: string) => void,
   isRoot = false,
 ): JsonLine[] {
-  const value = side === 'left' ? node.leftValue : node.rightValue;
-  const key = side === 'left' ? (node.leftKey ?? node.rightKey) : (node.rightKey ?? node.leftKey);
-  const isArrayItem = key?.startsWith('[') ?? false;
-  const suffix = isRoot || isLast ? '' : ',';
+  const value = side === "left" ? node.leftValue : node.rightValue;
+  const key =
+    side === "left"
+      ? (node.leftKey ?? node.rightKey)
+      : (node.rightKey ?? node.leftKey);
+  const isArrayItem = key?.startsWith("[") ?? false;
+  const suffix = isRoot || isLast ? "" : ",";
   const keyPrefix = renderKeyPrefix(key, isArrayItem, node.keyChanged);
 
   if (value === undefined) {
@@ -133,7 +153,10 @@ function buildJsonLines(
   }
 
   if (Array.isArray(value) && node.children?.length) {
-    const containerStatus = node.status === 'added' || node.status === 'removed' || node.keyChanged ? node.status : 'equal';
+    const containerStatus =
+      node.status === "added" || node.status === "removed" || node.keyChanged
+        ? node.status
+        : "equal";
     const isCollapsed = collapsedPaths.has(node.path);
     const openLine: JsonLine = {
       marker: getMarker(containerStatus),
@@ -141,9 +164,14 @@ function buildJsonLines(
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
-          <CollapseToggle collapsed={isCollapsed} onToggle={() => onToggleCollapse(node.path)} />
+          <CollapseToggle
+            collapsed={isCollapsed}
+            onToggle={() => onToggleCollapse(node.path)}
+          />
           {keyPrefix}
-          <span className="json-punct">{isCollapsed ? `[${value.length}]${suffix}` : '['}</span>
+          <span className="json-punct">
+            {isCollapsed ? `[${value.length}]${suffix}` : "["}
+          </span>
         </>
       ),
     };
@@ -179,7 +207,10 @@ function buildJsonLines(
   }
 
   if (isObjectValue(value) && node.children?.length) {
-    const containerStatus = node.status === 'added' || node.status === 'removed' || node.keyChanged ? node.status : 'equal';
+    const containerStatus =
+      node.status === "added" || node.status === "removed" || node.keyChanged
+        ? node.status
+        : "equal";
     const isCollapsed = collapsedPaths.has(node.path);
     const propertyCount = Object.keys(value).length;
     const openLine: JsonLine = {
@@ -188,9 +219,14 @@ function buildJsonLines(
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
-          <CollapseToggle collapsed={isCollapsed} onToggle={() => onToggleCollapse(node.path)} />
+          <CollapseToggle
+            collapsed={isCollapsed}
+            onToggle={() => onToggleCollapse(node.path)}
+          />
           {keyPrefix}
-          <span className="json-punct">{isCollapsed ? `{${propertyCount}}${suffix}` : '{'}</span>
+          <span className="json-punct">
+            {isCollapsed ? `{${propertyCount}}${suffix}` : "{"}
+          </span>
         </>
       ),
     };
@@ -227,14 +263,18 @@ function buildJsonLines(
 
   return [
     {
-      marker: getMarker(node.status === 'equal' ? 'equal' : node.status),
-      status: node.status === 'equal' ? 'equal' : node.status,
+      marker: getMarker(node.status === "equal" ? "equal" : node.status),
+      status: node.status === "equal" ? "equal" : node.status,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
           <span className="collapse-spacer" />
           {keyPrefix}
-          <span className={node.valueChanged ? 'json-value value-emphasis' : 'json-value'}>
+          <span
+            className={
+              node.valueChanged ? "json-value value-emphasis" : "json-value"
+            }
+          >
             {`${formatInlineValue(value)}${suffix}`}
           </span>
         </>
@@ -261,22 +301,31 @@ function CodePanel({
   onRatioChange,
   onLineActivate,
 }: {
-  id: 'left' | 'right';
+  id: "left" | "right";
   title: string;
   lines: JsonLine[];
   sharedRatio: number;
   highlightedLine: number | null;
   highlightToken: number;
-  onRatioChange: (id: 'left' | 'right', ratio: number) => void;
-  onLineActivate: (id: 'left' | 'right', lineIndex: number, ratio: number) => void;
+  onRatioChange: (id: "left" | "right", ratio: number) => void;
+  onLineActivate: (
+    id: "left" | "right",
+    lineIndex: number,
+    ratio: number,
+  ) => void;
 }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const minimapRef = useRef<HTMLDivElement | null>(null);
-  const [metrics, setMetrics] = useState<ScrollMetrics>(getInitialScrollMetrics);
+  const [metrics, setMetrics] = useState<ScrollMetrics>(
+    getInitialScrollMetrics,
+  );
   const [minimapHeight, setMinimapHeight] = useState(1);
   const [flashLine, setFlashLine] = useState<number | null>(null);
   const isApplyingExternalScroll = useRef(false);
-  const dragStateRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const dragStateRef = useRef<{
+    startY: number;
+    startScrollTop: number;
+  } | null>(null);
 
   useEffect(() => {
     const element = bodyRef.current;
@@ -296,14 +345,14 @@ function CodePanel({
     };
 
     updateMetrics();
-    element.addEventListener('scroll', updateMetrics);
+    element.addEventListener("scroll", updateMetrics);
 
     const resizeObserver = new ResizeObserver(updateMetrics);
     resizeObserver.observe(element);
     resizeObserver.observe(minimapElement);
 
     return () => {
-      element.removeEventListener('scroll', updateMetrics);
+      element.removeEventListener("scroll", updateMetrics);
       resizeObserver.disconnect();
     };
   }, [lines.length]);
@@ -342,7 +391,13 @@ function CodePanel({
 
   const maxScroll = Math.max(metrics.scrollHeight - metrics.clientHeight, 0);
   const currentRatio = maxScroll === 0 ? 0 : metrics.scrollTop / maxScroll;
-  const viewportHeight = maxScroll === 0 ? minimapHeight : Math.max(40, (metrics.clientHeight / metrics.scrollHeight) * minimapHeight);
+  const viewportHeight =
+    maxScroll === 0
+      ? minimapHeight
+      : Math.max(
+          40,
+          (metrics.clientHeight / metrics.scrollHeight) * minimapHeight,
+        );
   const viewportTravel = Math.max(minimapHeight - viewportHeight, 0);
   const viewportTop = viewportTravel === 0 ? 0 : currentRatio * viewportTravel;
 
@@ -354,7 +409,11 @@ function CodePanel({
     }
 
     const clampedRatio = Math.min(1, Math.max(0, ratio));
-    element.scrollTo({ top: clampedRatio * Math.max(element.scrollHeight - element.clientHeight, 0), behavior: 'auto' });
+    element.scrollTo({
+      top:
+        clampedRatio * Math.max(element.scrollHeight - element.clientHeight, 0),
+      behavior: "auto",
+    });
     onRatioChange(id, clampedRatio);
   }
 
@@ -364,7 +423,10 @@ function CodePanel({
     }
 
     const element = event.currentTarget;
-    const nextMaxScroll = Math.max(element.scrollHeight - element.clientHeight, 0);
+    const nextMaxScroll = Math.max(
+      element.scrollHeight - element.clientHeight,
+      0,
+    );
     const ratio = nextMaxScroll === 0 ? 0 : element.scrollTop / nextMaxScroll;
     onRatioChange(id, ratio);
   }
@@ -398,23 +460,27 @@ function CodePanel({
 
       const deltaY = moveEvent.clientY - dragState.startY;
       const travel = Math.max(minimapHeight - viewportHeight, 1);
-      const scrollDelta = (deltaY / travel) * Math.max(element.scrollHeight - element.clientHeight, 0);
+      const scrollDelta =
+        (deltaY / travel) *
+        Math.max(element.scrollHeight - element.clientHeight, 0);
       const nextScrollTop = dragState.startScrollTop + scrollDelta;
-      const nextRatio = Math.max(element.scrollHeight - element.clientHeight, 0) === 0
-        ? 0
-        : nextScrollTop / Math.max(element.scrollHeight - element.clientHeight, 1);
+      const nextRatio =
+        Math.max(element.scrollHeight - element.clientHeight, 0) === 0
+          ? 0
+          : nextScrollTop /
+            Math.max(element.scrollHeight - element.clientHeight, 1);
 
       scrollToRatio(nextRatio);
     };
 
     const handleMouseUp = () => {
       dragStateRef.current = null;
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
   }
 
   return (
@@ -425,18 +491,32 @@ function CodePanel({
           {lines.map((line, index) => {
             const isFlashing = flashLine === index;
             return (
-              <div key={`${title}-${index + 1}`} className={`code-line ${statusClassName(line.status)} ${isFlashing ? 'flash-active' : ''}`}>
+              <div
+                key={`${title}-${index + 1}`}
+                className={`code-line ${statusClassName(line.status)} ${isFlashing ? "flash-active" : ""}`}
+              >
                 <span className="code-line-number">{index + 1}</span>
-                <span className={`code-line-marker marker-${line.status}`}>{line.marker}</span>
-                <code className={`code-line-content ${statusClassName(line.status)} ${isFlashing ? 'flash-active' : ''}`}>{line.content}</code>
+                <span className={`code-line-marker marker-${line.status}`}>
+                  {line.marker}
+                </span>
+                <code
+                  className={`code-line-content ${statusClassName(line.status)} ${isFlashing ? "flash-active" : ""}`}
+                >
+                  {line.content}
+                </code>
               </div>
             );
           })}
         </div>
         <div className="minimap-panel">
-          <div ref={minimapRef} className="minimap-track" onClick={handleMinimapClick}>
+          <div
+            ref={minimapRef}
+            className="minimap-track"
+            onClick={handleMinimapClick}
+          >
             {lines.map((line, index) => {
-              const top = lines.length <= 1 ? 0 : (index / (lines.length - 1)) * 100;
+              const top =
+                lines.length <= 1 ? 0 : (index / (lines.length - 1)) * 100;
               return (
                 <button
                   key={`${title}-mini-${index + 1}`}
@@ -445,7 +525,8 @@ function CodePanel({
                   style={{ top: `${top}%` }}
                   onClick={(event) => {
                     event.stopPropagation();
-                    const ratio = lines.length <= 1 ? 0 : index / (lines.length - 1);
+                    const ratio =
+                      lines.length <= 1 ? 0 : index / (lines.length - 1);
                     scrollToRatio(ratio);
                     onLineActivate(id, index, ratio);
                   }}
@@ -469,7 +550,7 @@ function CodePanel({
 
 function buildDiffRatios(lines: JsonLine[]) {
   return lines.reduce<number[]>((ratios, line, index) => {
-    if (line.status === 'equal') {
+    if (line.status === "equal") {
       return ratios;
     }
 
@@ -482,7 +563,7 @@ function buildDiffRatios(lines: JsonLine[]) {
 function findNearestDiffIndex(lines: JsonLine[], ratio: number) {
   const diffIndexes = lines
     .map((line, index) => ({ line, index }))
-    .filter(({ line }) => line.status !== 'equal')
+    .filter(({ line }) => line.status !== "equal")
     .map(({ index }) => index);
 
   if (diffIndexes.length === 0) {
@@ -490,8 +571,12 @@ function findNearestDiffIndex(lines: JsonLine[], ratio: number) {
   }
 
   return diffIndexes.reduce((closest, current) => {
-    const currentDistance = Math.abs((lines.length <= 1 ? 0 : current / (lines.length - 1)) - ratio);
-    const closestDistance = Math.abs((lines.length <= 1 ? 0 : closest / (lines.length - 1)) - ratio);
+    const currentDistance = Math.abs(
+      (lines.length <= 1 ? 0 : current / (lines.length - 1)) - ratio,
+    );
+    const closestDistance = Math.abs(
+      (lines.length <= 1 ? 0 : closest / (lines.length - 1)) - ratio,
+    );
     return currentDistance < closestDistance ? current : closest;
   }, diffIndexes[0]);
 }
@@ -506,23 +591,47 @@ function JsonComparePanel({
   node: DiffNode;
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
-  navigationRequest: { seq: number; direction: 'prev' | 'next' | null };
+  navigationRequest: { seq: number; direction: "prev" | "next" | null };
   onNavigationStateChange: (hasDiffs: boolean) => void;
 }) {
   const leftLines = useMemo(
-    () => buildJsonLines(node, 'left', 0, true, collapsedPaths, onToggleCollapse, true),
+    () =>
+      buildJsonLines(
+        node,
+        "left",
+        0,
+        true,
+        collapsedPaths,
+        onToggleCollapse,
+        true,
+      ),
     [collapsedPaths, node, onToggleCollapse],
   );
   const rightLines = useMemo(
-    () => buildJsonLines(node, 'right', 0, true, collapsedPaths, onToggleCollapse, true),
+    () =>
+      buildJsonLines(
+        node,
+        "right",
+        0,
+        true,
+        collapsedPaths,
+        onToggleCollapse,
+        true,
+      ),
     [collapsedPaths, node, onToggleCollapse],
   );
   const [sharedRatio, setSharedRatio] = useState(0);
-  const [highlightState, setHighlightState] = useState<HighlightState>({ left: null, right: null, token: 0 });
+  const [highlightState, setHighlightState] = useState<HighlightState>({
+    left: null,
+    right: null,
+    token: 0,
+  });
   const handledNavigationSeq = useRef(0);
 
   const diffRatios = useMemo(() => {
-    return Array.from(new Set([...buildDiffRatios(leftLines), ...buildDiffRatios(rightLines)])).sort((a, b) => a - b);
+    return Array.from(
+      new Set([...buildDiffRatios(leftLines), ...buildDiffRatios(rightLines)]),
+    ).sort((a, b) => a - b);
   }, [leftLines, rightLines]);
 
   useEffect(() => {
@@ -546,12 +655,18 @@ function JsonComparePanel({
 
     handledNavigationSeq.current = navigationRequest.seq;
 
-    const nextCandidates = diffRatios.filter((ratio) => ratio > sharedRatio + 0.0001);
-    const prevCandidates = diffRatios.filter((ratio) => ratio < sharedRatio - 0.0001);
+    const nextCandidates = diffRatios.filter(
+      (ratio) => ratio > sharedRatio + 0.0001,
+    );
+    const prevCandidates = diffRatios.filter(
+      (ratio) => ratio < sharedRatio - 0.0001,
+    );
 
-    const targetRatio = navigationRequest.direction === 'next'
-      ? (nextCandidates[0] ?? diffRatios[0])
-      : (prevCandidates[prevCandidates.length - 1] ?? diffRatios[diffRatios.length - 1]);
+    const targetRatio =
+      navigationRequest.direction === "next"
+        ? (nextCandidates[0] ?? diffRatios[0])
+        : (prevCandidates[prevCandidates.length - 1] ??
+          diffRatios[diffRatios.length - 1]);
 
     const leftIndex = findNearestDiffIndex(leftLines, targetRatio);
     const rightIndex = findNearestDiffIndex(rightLines, targetRatio);
@@ -562,17 +677,29 @@ function JsonComparePanel({
       right: rightIndex,
       token: current.token + 1,
     }));
-  }, [diffRatios, leftLines, navigationRequest.direction, navigationRequest.seq, rightLines, sharedRatio]);
+  }, [
+    diffRatios,
+    leftLines,
+    navigationRequest.direction,
+    navigationRequest.seq,
+    rightLines,
+    sharedRatio,
+  ]);
 
-  function handleRatioChange(_id: 'left' | 'right', ratio: number) {
+  function handleRatioChange(_id: "left" | "right", ratio: number) {
     setSharedRatio(ratio);
   }
 
-  function handleLineActivate(id: 'left' | 'right', lineIndex: number, ratio: number) {
+  function handleLineActivate(
+    id: "left" | "right",
+    lineIndex: number,
+    ratio: number,
+  ) {
     setSharedRatio(ratio);
     setHighlightState((current) => ({
-      left: id === 'left' ? lineIndex : findNearestDiffIndex(leftLines, ratio),
-      right: id === 'right' ? lineIndex : findNearestDiffIndex(rightLines, ratio),
+      left: id === "left" ? lineIndex : findNearestDiffIndex(leftLines, ratio),
+      right:
+        id === "right" ? lineIndex : findNearestDiffIndex(rightLines, ratio),
       token: current.token + 1,
     }));
   }
@@ -605,39 +732,58 @@ function JsonComparePanel({
 
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
-  const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() => new Set());
+  const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [navigationRequest, setNavigationRequest] = useState<{ seq: number; direction: 'prev' | 'next' | null }>({ seq: 0, direction: null });
+  const [isLocaleMenuOpen, setIsLocaleMenuOpen] = useState(false);
+  const [navigationRequest, setNavigationRequest] = useState<{
+    seq: number;
+    direction: "prev" | "next" | null;
+  }>({ seq: 0, direction: null });
   const [hasDiffTargets, setHasDiffTargets] = useState(false);
   const locale = settings.locale;
+  const currentLocaleOption =
+    localeOptions.find((option) => option.value === settings.locale) ??
+    localeOptions[0];
+  const localeMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
 
   useEffect(() => {
-    document.body.style.overflow = isFullscreen || isSettingsOpen ? 'hidden' : '';
+    document.body.style.overflow =
+      isFullscreen || isSettingsOpen ? "hidden" : "";
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isFullscreen, isSettingsOpen]);
 
   useEffect(() => {
-    if (!isSettingsOpen) {
-      return;
-    }
-
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsSettingsOpen(false);
+        setIsLocaleMenuOpen(false);
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSettingsOpen]);
+    function handlePointerDown(event: globalThis.MouseEvent) {
+      if (!localeMenuRef.current?.contains(event.target as Node)) {
+        setIsLocaleMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
 
   const comparisonState = useMemo(() => {
     try {
@@ -646,25 +792,28 @@ export default function App() {
 
       return {
         errors: {} as JsonErrorState,
-        parsedResult: diffValue(leftValue, rightValue, 'root', {
+        parsedResult: diffValue(leftValue, rightValue, "root", {
           caseInsensitiveKeys: settings.caseInsensitiveKeys,
-          missingLabel: t(locale, 'missing'),
+          missingLabel: t(locale, "missing"),
         }),
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : t(locale, 'invalidJson');
+      const message =
+        error instanceof Error ? error.message : t(locale, "invalidJson");
       const nextErrors: JsonErrorState = {};
 
       try {
         safeParseJson(settings.leftInput);
       } catch (leftError) {
-        nextErrors.left = leftError instanceof Error ? leftError.message : message;
+        nextErrors.left =
+          leftError instanceof Error ? leftError.message : message;
       }
 
       try {
         safeParseJson(settings.rightInput);
       } catch (rightError) {
-        nextErrors.right = rightError instanceof Error ? rightError.message : message;
+        nextErrors.right =
+          rightError instanceof Error ? rightError.message : message;
       }
 
       return {
@@ -672,7 +821,12 @@ export default function App() {
         parsedResult: null,
       };
     }
-  }, [locale, settings.caseInsensitiveKeys, settings.leftInput, settings.rightInput]);
+  }, [
+    locale,
+    settings.caseInsensitiveKeys,
+    settings.leftInput,
+    settings.rightInput,
+  ]);
 
   const { errors, parsedResult } = comparisonState;
   const diffCount = parsedResult ? countDiffNodes(parsedResult) : 0;
@@ -689,7 +843,7 @@ export default function App() {
     }));
   }
 
-  function handleFormat(target: 'leftInput' | 'rightInput') {
+  function handleFormat(target: "leftInput" | "rightInput") {
     try {
       updateSettings({
         [target]: formatJsonInput(settings[target]),
@@ -723,7 +877,7 @@ export default function App() {
     updateSettings({ panelHeight: defaultSettings.panelHeight });
   }
 
-  function requestNavigation(direction: 'prev' | 'next') {
+  function requestNavigation(direction: "prev" | "next") {
     setNavigationRequest((current) => ({
       seq: current.seq + 1,
       direction,
@@ -731,17 +885,70 @@ export default function App() {
   }
 
   return (
-    <div className={`app-shell diff-style-${settings.diffBadgeStyle}`} style={{ ['--panel-height' as string]: `${settings.panelHeight}px` }}>
+    <div
+      className={`app-shell diff-style-${settings.diffBadgeStyle}`}
+      style={{ ["--panel-height" as string]: `${settings.panelHeight}px` }}
+    >
       <header className="hero">
         <div className="hero-bar">
           <div className="hero-intro">
-            <p className="eyebrow">React + TypeScript + GitHub Pages</p>
-            <h1>{t(locale, 'title')}</h1>
-            <p className="hero-copy">{t(locale, 'subtitle')}</p>
+            <h1>{t(locale, "title")}</h1>
+            <p className="hero-copy">{t(locale, "subtitle")}</p>
           </div>
           <div className="hero-actions">
-            <button type="button" className="ghost settings-trigger" onClick={() => setIsSettingsOpen(true)}>
-              {t(locale, 'openSettings')}
+            <div className="locale-switcher" ref={localeMenuRef}>
+              <button
+                type="button"
+                className={
+                  isLocaleMenuOpen
+                    ? "ghost locale-trigger active"
+                    : "ghost locale-trigger"
+                }
+                onClick={() => setIsLocaleMenuOpen((current) => !current)}
+                aria-haspopup="menu"
+                aria-expanded={isLocaleMenuOpen}
+                aria-label={t(locale, "language")}
+              >
+                <span className="locale-trigger-icon">
+                  {currentLocaleOption.icon}
+                </span>
+                <span>{currentLocaleOption.shortLabel}</span>
+              </button>
+              {isLocaleMenuOpen ? (
+                <div
+                  className="locale-menu"
+                  role="menu"
+                  aria-label={t(locale, "language")}
+                >
+                  {localeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={
+                        option.value === settings.locale
+                          ? "locale-option active"
+                          : "locale-option"
+                      }
+                      onClick={() => {
+                        updateSettings({ locale: option.value as Locale });
+                        setIsLocaleMenuOpen(false);
+                      }}
+                    >
+                      <span className="locale-option-icon">{option.icon}</span>
+                      <span className="locale-option-label">
+                        {option.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="ghost settings-trigger"
+              onClick={() => setIsSettingsOpen(true)}
+            >
+              {t(locale, "openSettings")}
             </button>
           </div>
         </div>
@@ -751,85 +958,129 @@ export default function App() {
         <section className="editor-grid">
           <article className="editor-card">
             <div className="editor-header">
-              <h2>{t(locale, 'leftTitle')}</h2>
-              <button type="button" onClick={() => handleFormat('leftInput')}>
-                {t(locale, 'formatJson')}
+              <h2>{t(locale, "leftTitle")}</h2>
+              <button type="button" onClick={() => handleFormat("leftInput")}>
+                {t(locale, "formatJson")}
               </button>
             </div>
             <textarea
               value={settings.leftInput}
-              onChange={(event) => updateSettings({ leftInput: event.target.value })}
-              placeholder={t(locale, 'placeholderLeft')}
+              onChange={(event) =>
+                updateSettings({ leftInput: event.target.value })
+              }
+              placeholder={t(locale, "placeholderLeft")}
               spellCheck={false}
             />
             {errors.left ? (
               <p className="error-text">
-                {t(locale, 'parseError')}: {errors.left}
+                {t(locale, "parseError")}: {errors.left}
               </p>
             ) : null}
           </article>
 
           <article className="editor-card">
             <div className="editor-header">
-              <h2>{t(locale, 'rightTitle')}</h2>
-              <button type="button" onClick={() => handleFormat('rightInput')}>
-                {t(locale, 'formatJson')}
+              <h2>{t(locale, "rightTitle")}</h2>
+              <button type="button" onClick={() => handleFormat("rightInput")}>
+                {t(locale, "formatJson")}
               </button>
             </div>
             <textarea
               value={settings.rightInput}
-              onChange={(event) => updateSettings({ rightInput: event.target.value })}
-              placeholder={t(locale, 'placeholderRight')}
+              onChange={(event) =>
+                updateSettings({ rightInput: event.target.value })
+              }
+              placeholder={t(locale, "placeholderRight")}
               spellCheck={false}
             />
             {errors.right ? (
               <p className="error-text">
-                {t(locale, 'parseError')}: {errors.right}
+                {t(locale, "parseError")}: {errors.right}
               </p>
             ) : null}
           </article>
         </section>
 
-        <section className={isFullscreen ? 'result-card fullscreen' : 'result-card'}>
+        <section
+          className={isFullscreen ? "result-card fullscreen" : "result-card"}
+        >
           <div className="result-header">
             <div>
-              <h2>{t(locale, 'diffResult')}</h2>
+              <h2>{t(locale, "diffResult")}</h2>
               <p className="summary-line">
                 {parsedResult
                   ? diffCount === 0
-                    ? t(locale, 'summaryNone')
-                    : t(locale, 'summaryValue', { count: diffCount })
-                  : t(locale, 'invalidJson')}
+                    ? t(locale, "summaryNone")
+                    : t(locale, "summaryValue", { count: diffCount })
+                  : t(locale, "invalidJson")}
               </p>
             </div>
             <div className="result-actions">
-              <span className="height-readout">{t(locale, 'panelHeight')}: {settings.panelHeight}px</span>
-              <button type="button" className="ghost action-btn" onClick={() => requestNavigation('prev')} disabled={!hasDiffTargets}>
-                {t(locale, 'prevDiff')}
+              <span className="height-readout">
+                {t(locale, "panelHeight")}: {settings.panelHeight}px
+              </span>
+              <button
+                type="button"
+                className="ghost action-btn"
+                onClick={() => requestNavigation("prev")}
+                disabled={!hasDiffTargets}
+              >
+                {t(locale, "prevDiff")}
               </button>
-              <button type="button" className="ghost action-btn" onClick={() => requestNavigation('next')} disabled={!hasDiffTargets}>
-                {t(locale, 'nextDiff')}
+              <button
+                type="button"
+                className="ghost action-btn"
+                onClick={() => requestNavigation("next")}
+                disabled={!hasDiffTargets}
+              >
+                {t(locale, "nextDiff")}
               </button>
-              <button type="button" className="ghost action-btn" onClick={() => adjustPanelHeight(-panelHeightStep)}>
-                {t(locale, 'smaller')}
+              <button
+                type="button"
+                className="ghost action-btn"
+                onClick={() => adjustPanelHeight(-panelHeightStep)}
+              >
+                {t(locale, "smaller")}
               </button>
-              <button type="button" className="ghost action-btn" onClick={() => adjustPanelHeight(panelHeightStep)}>
-                {t(locale, 'larger')}
+              <button
+                type="button"
+                className="ghost action-btn"
+                onClick={() => adjustPanelHeight(panelHeightStep)}
+              >
+                {t(locale, "larger")}
               </button>
-              <button type="button" className="ghost action-btn" onClick={resetPanelHeight}>
-                {t(locale, 'resetHeight')}
+              <button
+                type="button"
+                className="ghost action-btn"
+                onClick={resetPanelHeight}
+              >
+                {t(locale, "resetHeight")}
               </button>
-              <button type="button" className="action-btn" onClick={() => setIsFullscreen((current) => !current)}>
-                {isFullscreen ? t(locale, 'exitFullscreen') : t(locale, 'fullscreen')}
+              <button
+                type="button"
+                className="action-btn"
+                onClick={() => setIsFullscreen((current) => !current)}
+              >
+                {isFullscreen
+                  ? t(locale, "exitFullscreen")
+                  : t(locale, "fullscreen")}
               </button>
             </div>
           </div>
 
           <div className="legend">
-            <span className="legend-item legend-equal">{t(locale, 'legendEqual')}</span>
-            <span className="legend-item legend-changed">{t(locale, 'legendChanged')}</span>
-            <span className="legend-item legend-added">{t(locale, 'legendAdded')}</span>
-            <span className="legend-item legend-removed">{t(locale, 'legendRemoved')}</span>
+            <span className="legend-item legend-equal">
+              {t(locale, "legendEqual")}
+            </span>
+            <span className="legend-item legend-changed">
+              {t(locale, "legendChanged")}
+            </span>
+            <span className="legend-item legend-added">
+              {t(locale, "legendAdded")}
+            </span>
+            <span className="legend-item legend-removed">
+              {t(locale, "legendRemoved")}
+            </span>
           </div>
 
           {parsedResult ? (
@@ -843,72 +1094,91 @@ export default function App() {
               />
             </div>
           ) : (
-            <div className="empty-state">{t(locale, 'invalidJson')}</div>
+            <div className="empty-state">{t(locale, "invalidJson")}</div>
           )}
         </section>
       </main>
 
       {isSettingsOpen ? (
-        <div className="settings-modal-backdrop" onClick={() => setIsSettingsOpen(false)}>
-          <div className="settings-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+        <div
+          className="settings-modal-backdrop"
+          onClick={() => setIsSettingsOpen(false)}
+        >
+          <div
+            className="settings-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-modal-title"
+          >
             <div className="settings-modal-header">
               <div>
-                <p className="eyebrow modal-eyebrow">{t(locale, 'settingsTitle')}</p>
-                <h2 id="settings-modal-title">{t(locale, 'compareOptions')}</h2>
+                <p className="eyebrow modal-eyebrow">
+                  {t(locale, "settingsTitle")}
+                </p>
+                <h2 id="settings-modal-title">{t(locale, "compareOptions")}</h2>
               </div>
-              <button type="button" className="ghost settings-close" onClick={() => setIsSettingsOpen(false)}>
-                {t(locale, 'close')}
+              <button
+                type="button"
+                className="ghost settings-close"
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                {t(locale, "close")}
               </button>
             </div>
             <div className="settings-modal-grid">
               <section className="settings-section">
-                <h3>{t(locale, 'settingsTitle')}</h3>
-                <label className="toolbar-field toolbar-field-select">
-                  <span>{t(locale, 'language')}</span>
-                  <select
-                    value={settings.locale}
-                    onChange={(event) => updateSettings({ locale: event.target.value as Locale })}
-                  >
-                    {localeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <h3>{t(locale, "settingsTitle")}</h3>
                 <label className="toolbar-toggle">
                   <input
                     type="checkbox"
                     checked={settings.caseInsensitiveKeys}
-                    onChange={(event) => updateSettings({ caseInsensitiveKeys: event.target.checked })}
+                    onChange={(event) =>
+                      updateSettings({
+                        caseInsensitiveKeys: event.target.checked,
+                      })
+                    }
                   />
-                  <span>{t(locale, 'caseInsensitive')}</span>
+                  <span>{t(locale, "caseInsensitive")}</span>
                 </label>
               </section>
               <section className="settings-section">
-                <h3>{t(locale, 'appearanceTitle')}</h3>
+                <h3>{t(locale, "appearanceTitle")}</h3>
                 <label className="toolbar-field">
-                  <span>{t(locale, 'badgeStyle')}</span>
+                  <span>{t(locale, "badgeStyle")}</span>
                   <div className="segmented-control compact">
                     <button
                       type="button"
-                      className={settings.diffBadgeStyle === 'soft' ? 'segment active' : 'segment'}
-                      onClick={() => updateSettings({ diffBadgeStyle: 'soft' })}
+                      className={
+                        settings.diffBadgeStyle === "soft"
+                          ? "segment active"
+                          : "segment"
+                      }
+                      onClick={() => updateSettings({ diffBadgeStyle: "soft" })}
                     >
-                      {t(locale, 'badgeSoft')}
+                      {t(locale, "badgeSoft")}
                     </button>
                     <button
                       type="button"
-                      className={settings.diffBadgeStyle === 'solid' ? 'segment active' : 'segment'}
-                      onClick={() => updateSettings({ diffBadgeStyle: 'solid' })}
+                      className={
+                        settings.diffBadgeStyle === "solid"
+                          ? "segment active"
+                          : "segment"
+                      }
+                      onClick={() =>
+                        updateSettings({ diffBadgeStyle: "solid" })
+                      }
                     >
-                      {t(locale, 'badgeSolid')}
+                      {t(locale, "badgeSolid")}
                     </button>
                   </div>
                 </label>
                 <div className="button-row toolbar-actions">
-                  <button type="button" onClick={() => setSettings(sampleSettings(settings))}>
-                    {t(locale, 'loadSample')}
+                  <button
+                    type="button"
+                    onClick={() => setSettings(sampleSettings(settings))}
+                  >
+                    {t(locale, "loadSample")}
                   </button>
                   <button
                     type="button"
@@ -916,12 +1186,12 @@ export default function App() {
                     onClick={() =>
                       setSettings((current) => ({
                         ...current,
-                        leftInput: '{}',
-                        rightInput: '{}',
+                        leftInput: "{}",
+                        rightInput: "{}",
                       }))
                     }
                   >
-                    {t(locale, 'clear')}
+                    {t(locale, "clear")}
                   </button>
                 </div>
               </section>
@@ -932,23 +1202,48 @@ export default function App() {
 
       <footer className="app-footer">
         <section className="footer-card">
-          <h3>{t(locale, 'footerNoticeTitle')}</h3>
-          <p>{t(locale, 'privacyNotice')}</p>
-          <p>{t(locale, 'disclaimer')}</p>
+          <h3>{t(locale, "footerNoticeTitle")}</h3>
+          <p>{t(locale, "privacyNotice")}</p>
+          <p>{t(locale, "disclaimer")}</p>
         </section>
         <section className="footer-card">
-          <h3>{t(locale, 'footerLicenseTitle')}</h3>
-          <p>{t(locale, 'mitLicense')}</p>
+          <h3>{t(locale, "footerLicenseTitle")}</h3>
+          <p>{t(locale, "mitLicense")}</p>
           <div className="footer-links">
-            <a href="https://opensource.org/license/mit/" target="_blank" rel="noreferrer">MIT License</a>
+            <a
+              href="https://opensource.org/license/mit/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              MIT License
+            </a>
           </div>
         </section>
         <section className="footer-card">
-          <h3>{t(locale, 'footerTechTitle')}</h3>
-          <p>{t(locale, 'builtWith')}</p>
-          <div className="footer-links">
-            <a href="https://react.dev/" target="_blank" rel="noreferrer">React</a>
-            <a href="https://openai.com/" target="_blank" rel="noreferrer">GPT-5.4</a>
+          <h3>{t(locale, "footerTechTitle")}</h3>
+          <p>{t(locale, "builtWith")}</p>
+          <div className="footer-links footer-links-stack">
+            <a href="https://react.dev/" target="_blank" rel="noreferrer">
+              React
+            </a>
+            <a href="https://openai.com/" target="_blank" rel="noreferrer">
+              GPT-5.4
+            </a>
+            <a
+              href="https://github.com/Nil0516/json-diff-studio"
+              target="_blank"
+              rel="noreferrer"
+              className="github-link"
+              aria-label="GitHub repository"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="github-icon">
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.58 2 12.22c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.49 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.21-3.37-1.21-.46-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.09 0-1.13.39-2.05 1.03-2.77-.1-.26-.45-1.31.1-2.73 0 0 .84-.27 2.75 1.06A9.31 9.31 0 0 1 12 6.84c.85 0 1.71.12 2.51.35 1.91-1.33 2.75-1.06 2.75-1.06.55 1.42.2 2.47.1 2.73.64.72 1.03 1.64 1.03 2.77 0 3.96-2.34 4.82-4.57 5.08.36.32.68.95.68 1.92 0 1.39-.01 2.5-.01 2.84 0 .27.18.59.69.49A10.27 10.27 0 0 0 22 12.22C22 6.58 17.52 2 12 2Z"
+                />
+              </svg>
+              <span>GitHub</span>
+            </a>
           </div>
         </section>
       </footer>

@@ -105,10 +105,72 @@ code {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+.locale-switcher {
+  position: relative;
+}
+
+.locale-trigger,
 .settings-trigger {
   min-width: 140px;
+}
+
+.locale-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.locale-trigger.active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.locale-trigger-icon,
+.locale-option-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.locale-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(8, 12, 20, 0.96);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+  z-index: 30;
+}
+
+.locale-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  background: transparent;
+  color: #f8fafc;
+  text-align: left;
+}
+
+.locale-option:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.locale-option.active {
+  background: rgba(255, 209, 102, 0.16);
+  color: #ffe0a6;
+}
+
+.locale-option-label {
+  white-space: nowrap;
 }
 
 .toolbar-field {
@@ -662,8 +724,33 @@ code {
   text-decoration: none;
 }
 
+.footer-links-stack {
+  align-items: flex-start;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.github-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
 .footer-links a:hover {
   text-decoration: underline;
+}
+
+.github-link:hover {
+  text-decoration: none;
+  background: rgba(255, 209, 102, 0.12);
 }
 
 @media (max-width: 960px) {
@@ -686,6 +773,11 @@ code {
   .hero-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .locale-menu {
+    left: 0;
+    right: auto;
   }
 
   .settings-modal-backdrop {
