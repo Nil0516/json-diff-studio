@@ -2,6 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  base: '/json-diff/',
+  base: '/json-diff-studio/',
   plugins: [react()],
 });
