@@ -35,7 +35,9 @@ type MessageKey =
   | 'larger'
   | 'resetHeight'
   | 'fullscreen'
-  | 'exitFullscreen';
+  | 'exitFullscreen'
+  | 'prevDiff'
+  | 'nextDiff';
 
 type Messages = Record<MessageKey, string>;
 
@@ -84,6 +86,8 @@ export const messages: Record<Locale, Messages> = {
     resetHeight: '重設',
     fullscreen: '全螢幕',
     exitFullscreen: '離開全螢幕',
+    prevDiff: '上一個差異',
+    nextDiff: '下一個差異',
   },
   'zh-CN': {
     title: 'JSON Diff Studio',
@@ -121,6 +125,8 @@ export const messages: Record<Locale, Messages> = {
     resetHeight: '重设',
     fullscreen: '全屏',
     exitFullscreen: '退出全屏',
+    prevDiff: '上一个差异',
+    nextDiff: '下一个差异',
   },
   en: {
     title: 'JSON Diff Studio',
@@ -158,6 +164,8 @@ export const messages: Record<Locale, Messages> = {
     resetHeight: 'Reset',
     fullscreen: 'Fullscreen',
     exitFullscreen: 'Exit Fullscreen',
+    prevDiff: 'Previous Diff',
+    nextDiff: 'Next Diff',
   },
   ja: {
     title: 'JSON Diff Studio',
@@ -195,6 +203,8 @@ export const messages: Record<Locale, Messages> = {
     resetHeight: 'リセット',
     fullscreen: '全画面',
     exitFullscreen: '全画面終了',
+    prevDiff: '前の差分',
+    nextDiff: '次の差分',
   },
   ko: {
     title: 'JSON Diff Studio',
@@ -232,6 +242,8 @@ export const messages: Record<Locale, Messages> = {
     resetHeight: '재설정',
     fullscreen: '전체 화면',
     exitFullscreen: '전체 화면 종료',
+    prevDiff: '이전 차이',
+    nextDiff: '다음 차이',
   },
 };
 

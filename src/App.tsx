@@ -17,6 +17,12 @@ interface ScrollMetrics {
   clientHeight: number;
 }
 
+interface HighlightState {
+  left: number | null;
+  right: number | null;
+  token: number;
+}
+
 const minPanelHeight = 420;
 const maxPanelHeight = 1100;
 const panelHeightStep = 120;
@@ -250,18 +256,25 @@ function CodePanel({
   title,
   lines,
   sharedRatio,
+  highlightedLine,
+  highlightToken,
   onRatioChange,
+  onLineActivate,
 }: {
   id: 'left' | 'right';
   title: string;
   lines: JsonLine[];
   sharedRatio: number;
+  highlightedLine: number | null;
+  highlightToken: number;
   onRatioChange: (id: 'left' | 'right', ratio: number) => void;
+  onLineActivate: (id: 'left' | 'right', lineIndex: number, ratio: number) => void;
 }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const minimapRef = useRef<HTMLDivElement | null>(null);
   const [metrics, setMetrics] = useState<ScrollMetrics>(getInitialScrollMetrics);
   const [minimapHeight, setMinimapHeight] = useState(1);
+  const [flashLine, setFlashLine] = useState<number | null>(null);
   const isApplyingExternalScroll = useRef(false);
   const dragStateRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
 
@@ -315,6 +328,17 @@ function CodePanel({
       isApplyingExternalScroll.current = false;
     });
   }, [sharedRatio, lines.length]);
+
+  useEffect(() => {
+    if (highlightedLine === null) {
+      return;
+    }
+
+    setFlashLine(highlightedLine);
+    const timeoutId = window.setTimeout(() => setFlashLine(null), 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightToken, highlightedLine]);
 
   const maxScroll = Math.max(metrics.scrollHeight - metrics.clientHeight, 0);
   const currentRatio = maxScroll === 0 ? 0 : metrics.scrollTop / maxScroll;
@@ -398,13 +422,16 @@ function CodePanel({
       <div className="code-panel-header">{title}</div>
       <div className="code-panel-main">
         <div ref={bodyRef} className="code-panel-body" onScroll={handleScroll}>
-          {lines.map((line, index) => (
-            <div key={`${title}-${index + 1}`} className={`code-line ${statusClassName(line.status)}`}>
-              <span className="code-line-number">{index + 1}</span>
-              <span className={`code-line-marker marker-${line.status}`}>{line.marker}</span>
-              <code className={`code-line-content ${statusClassName(line.status)}`}>{line.content}</code>
-            </div>
-          ))}
+          {lines.map((line, index) => {
+            const isFlashing = flashLine === index;
+            return (
+              <div key={`${title}-${index + 1}`} className={`code-line ${statusClassName(line.status)} ${isFlashing ? 'flash-active' : ''}`}>
+                <span className="code-line-number">{index + 1}</span>
+                <span className={`code-line-marker marker-${line.status}`}>{line.marker}</span>
+                <code className={`code-line-content ${statusClassName(line.status)} ${isFlashing ? 'flash-active' : ''}`}>{line.content}</code>
+              </div>
+            );
+          })}
         </div>
         <div className="minimap-panel">
           <div ref={minimapRef} className="minimap-track" onClick={handleMinimapClick}>
@@ -418,7 +445,9 @@ function CodePanel({
                   style={{ top: `${top}%` }}
                   onClick={(event) => {
                     event.stopPropagation();
-                    scrollToRatio(lines.length <= 1 ? 0 : index / (lines.length - 1));
+                    const ratio = lines.length <= 1 ? 0 : index / (lines.length - 1);
+                    scrollToRatio(ratio);
+                    onLineActivate(id, index, ratio);
                   }}
                   aria-label={`Jump to line ${index + 1}`}
                 />
@@ -438,27 +467,138 @@ function CodePanel({
   );
 }
 
+function buildDiffRatios(lines: JsonLine[]) {
+  return lines.reduce<number[]>((ratios, line, index) => {
+    if (line.status === 'equal') {
+      return ratios;
+    }
+
+    const ratio = lines.length <= 1 ? 0 : index / (lines.length - 1);
+    ratios.push(ratio);
+    return ratios;
+  }, []);
+}
+
+function findNearestDiffIndex(lines: JsonLine[], ratio: number) {
+  const diffIndexes = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line.status !== 'equal')
+    .map(({ index }) => index);
+
+  if (diffIndexes.length === 0) {
+    return null;
+  }
+
+  return diffIndexes.reduce((closest, current) => {
+    const currentDistance = Math.abs((lines.length <= 1 ? 0 : current / (lines.length - 1)) - ratio);
+    const closestDistance = Math.abs((lines.length <= 1 ? 0 : closest / (lines.length - 1)) - ratio);
+    return currentDistance < closestDistance ? current : closest;
+  }, diffIndexes[0]);
+}
+
 function JsonComparePanel({
   node,
   collapsedPaths,
   onToggleCollapse,
+  navigationRequest,
+  onNavigationStateChange,
 }: {
   node: DiffNode;
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
+  navigationRequest: { seq: number; direction: 'prev' | 'next' | null };
+  onNavigationStateChange: (hasDiffs: boolean) => void;
 }) {
-  const leftLines = buildJsonLines(node, 'left', 0, true, collapsedPaths, onToggleCollapse, true);
-  const rightLines = buildJsonLines(node, 'right', 0, true, collapsedPaths, onToggleCollapse, true);
+  const leftLines = useMemo(
+    () => buildJsonLines(node, 'left', 0, true, collapsedPaths, onToggleCollapse, true),
+    [collapsedPaths, node, onToggleCollapse],
+  );
+  const rightLines = useMemo(
+    () => buildJsonLines(node, 'right', 0, true, collapsedPaths, onToggleCollapse, true),
+    [collapsedPaths, node, onToggleCollapse],
+  );
   const [sharedRatio, setSharedRatio] = useState(0);
+  const [highlightState, setHighlightState] = useState<HighlightState>({ left: null, right: null, token: 0 });
+  const handledNavigationSeq = useRef(0);
+
+  const diffRatios = useMemo(() => {
+    return Array.from(new Set([...buildDiffRatios(leftLines), ...buildDiffRatios(rightLines)])).sort((a, b) => a - b);
+  }, [leftLines, rightLines]);
 
   useEffect(() => {
     setSharedRatio(0);
+    setHighlightState({ left: null, right: null, token: 0 });
+    handledNavigationSeq.current = 0;
   }, [leftLines.length, rightLines.length]);
+
+  useEffect(() => {
+    onNavigationStateChange(diffRatios.length > 0);
+  }, [diffRatios.length, onNavigationStateChange]);
+
+  useEffect(() => {
+    if (!navigationRequest.direction || diffRatios.length === 0) {
+      return;
+    }
+
+    if (navigationRequest.seq === handledNavigationSeq.current) {
+      return;
+    }
+
+    handledNavigationSeq.current = navigationRequest.seq;
+
+    const nextCandidates = diffRatios.filter((ratio) => ratio > sharedRatio + 0.0001);
+    const prevCandidates = diffRatios.filter((ratio) => ratio < sharedRatio - 0.0001);
+
+    const targetRatio = navigationRequest.direction === 'next'
+      ? (nextCandidates[0] ?? diffRatios[0])
+      : (prevCandidates[prevCandidates.length - 1] ?? diffRatios[diffRatios.length - 1]);
+
+    const leftIndex = findNearestDiffIndex(leftLines, targetRatio);
+    const rightIndex = findNearestDiffIndex(rightLines, targetRatio);
+
+    setSharedRatio(targetRatio);
+    setHighlightState((current) => ({
+      left: leftIndex,
+      right: rightIndex,
+      token: current.token + 1,
+    }));
+  }, [diffRatios, leftLines, navigationRequest.direction, navigationRequest.seq, rightLines, sharedRatio]);
+
+  function handleRatioChange(_id: 'left' | 'right', ratio: number) {
+    setSharedRatio(ratio);
+  }
+
+  function handleLineActivate(id: 'left' | 'right', lineIndex: number, ratio: number) {
+    setSharedRatio(ratio);
+    setHighlightState((current) => ({
+      left: id === 'left' ? lineIndex : findNearestDiffIndex(leftLines, ratio),
+      right: id === 'right' ? lineIndex : findNearestDiffIndex(rightLines, ratio),
+      token: current.token + 1,
+    }));
+  }
 
   return (
     <div className="json-compare-grid">
-      <CodePanel id="left" title="JSON 1" lines={leftLines} sharedRatio={sharedRatio} onRatioChange={(_, ratio) => setSharedRatio(ratio)} />
-      <CodePanel id="right" title="JSON 2" lines={rightLines} sharedRatio={sharedRatio} onRatioChange={(_, ratio) => setSharedRatio(ratio)} />
+      <CodePanel
+        id="left"
+        title="JSON 1"
+        lines={leftLines}
+        sharedRatio={sharedRatio}
+        highlightedLine={highlightState.left}
+        highlightToken={highlightState.token}
+        onRatioChange={handleRatioChange}
+        onLineActivate={handleLineActivate}
+      />
+      <CodePanel
+        id="right"
+        title="JSON 2"
+        lines={rightLines}
+        sharedRatio={sharedRatio}
+        highlightedLine={highlightState.right}
+        highlightToken={highlightState.token}
+        onRatioChange={handleRatioChange}
+        onLineActivate={handleLineActivate}
+      />
     </div>
   );
 }
@@ -467,6 +607,8 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() => new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [navigationRequest, setNavigationRequest] = useState<{ seq: number; direction: 'prev' | 'next' | null }>({ seq: 0, direction: null });
+  const [hasDiffTargets, setHasDiffTargets] = useState(false);
   const locale = settings.locale;
 
   useEffect(() => {
@@ -521,6 +663,7 @@ export default function App() {
 
   useEffect(() => {
     setCollapsedPaths(new Set());
+    setNavigationRequest({ seq: 0, direction: null });
   }, [settings.leftInput, settings.rightInput, settings.caseInsensitiveKeys]);
 
   function updateSettings(patch: Partial<AppSettings>) {
@@ -562,6 +705,13 @@ export default function App() {
 
   function resetPanelHeight() {
     updateSettings({ panelHeight: defaultSettings.panelHeight });
+  }
+
+  function requestNavigation(direction: 'prev' | 'next') {
+    setNavigationRequest((current) => ({
+      seq: current.seq + 1,
+      direction,
+    }));
   }
 
   return (
@@ -692,6 +842,12 @@ export default function App() {
             </div>
             <div className="result-actions">
               <span className="height-readout">{t(locale, 'panelHeight')}: {settings.panelHeight}px</span>
+              <button type="button" className="ghost action-btn" onClick={() => requestNavigation('prev')} disabled={!hasDiffTargets}>
+                {t(locale, 'prevDiff')}
+              </button>
+              <button type="button" className="ghost action-btn" onClick={() => requestNavigation('next')} disabled={!hasDiffTargets}>
+                {t(locale, 'nextDiff')}
+              </button>
               <button type="button" className="ghost action-btn" onClick={() => adjustPanelHeight(-panelHeightStep)}>
                 {t(locale, 'smaller')}
               </button>
@@ -720,6 +876,8 @@ export default function App() {
                 node={parsedResult}
                 collapsedPaths={collapsedPaths}
                 onToggleCollapse={handleToggleCollapse}
+                navigationRequest={navigationRequest}
+                onNavigationStateChange={setHasDiffTargets}
               />
             </div>
           ) : (
