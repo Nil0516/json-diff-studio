@@ -1,4 +1,5 @@
-export type Locale = 'zh-TW' | 'zh-CN' | 'en' | 'ja' | 'ko';
+﻿export type Locale = 'zh-TW' | 'zh-CN' | 'en' | 'ja' | 'ko';
+export type DiffBadgeStyle = 'soft' | 'solid';
 
 export type DiffStatus =
   | 'equal'
@@ -10,6 +11,8 @@ export type DiffStatus =
 export interface AppSettings {
   locale: Locale;
   caseInsensitiveKeys: boolean;
+  diffBadgeStyle: DiffBadgeStyle;
+  panelHeight: number;
   leftInput: string;
   rightInput: string;
 }
@@ -24,6 +27,8 @@ export interface DiffNode {
   leftKey?: string;
   rightKey?: string;
   status: DiffStatus;
+  keyChanged: boolean;
+  valueChanged: boolean;
   leftValue: unknown;
   rightValue: unknown;
   leftDisplay: string;

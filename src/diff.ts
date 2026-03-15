@@ -1,4 +1,4 @@
-import type { DiffNode, DiffStatus } from './types';
+﻿import type { DiffNode, DiffStatus } from './types';
 
 interface DiffOptions {
   caseInsensitiveKeys: boolean;
@@ -30,11 +30,7 @@ function formatValue(value: unknown, missingLabel: string) {
     return `"${value}"`;
   }
 
-  if (
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    value === null
-  ) {
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
     return String(value);
   }
 
@@ -67,6 +63,10 @@ function comparePrimitive(left: unknown, right: unknown): DiffStatus {
   }
 
   return 'changed';
+}
+
+function hasNodeDifference(node: DiffNode) {
+  return node.keyChanged || node.valueChanged;
 }
 
 function diffObjects(
@@ -125,12 +125,16 @@ export function diffValue(
   leftKey?: string,
   rightKey?: string,
 ): DiffNode {
+  const keyChanged = Boolean(leftKey && rightKey && leftKey !== rightKey);
+
   if (leftValue === undefined && rightValue !== undefined) {
     return {
       path,
       leftKey,
       rightKey,
       status: 'added',
+      keyChanged,
+      valueChanged: true,
       leftValue,
       rightValue,
       leftDisplay: options.missingLabel,
@@ -144,6 +148,8 @@ export function diffValue(
       leftKey,
       rightKey,
       status: 'removed',
+      keyChanged,
+      valueChanged: true,
       leftValue,
       rightValue,
       leftDisplay: formatValue(leftValue, options.missingLabel),
@@ -153,13 +159,15 @@ export function diffValue(
 
   if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
     const children = diffArrays(leftValue, rightValue, path, options);
-    const hasDiff = children.some((child) => child.status !== 'equal');
+    const valueChanged = children.some(hasNodeDifference);
 
     return {
       path,
       leftKey,
       rightKey,
-      status: hasDiff ? 'changed' : 'equal',
+      status: valueChanged ? 'changed' : 'equal',
+      keyChanged,
+      valueChanged,
       leftValue,
       rightValue,
       leftDisplay: formatValue(leftValue, options.missingLabel),
@@ -170,13 +178,15 @@ export function diffValue(
 
   if (isPlainObject(leftValue) && isPlainObject(rightValue)) {
     const children = diffObjects(leftValue, rightValue, path, options);
-    const hasDiff = children.some((child) => child.status !== 'equal');
+    const valueChanged = children.some(hasNodeDifference);
 
     return {
       path,
       leftKey,
       rightKey,
-      status: hasDiff ? 'changed' : 'equal',
+      status: valueChanged ? 'changed' : 'equal',
+      keyChanged,
+      valueChanged,
       leftValue,
       rightValue,
       leftDisplay: formatValue(leftValue, options.missingLabel),
@@ -186,12 +196,15 @@ export function diffValue(
   }
 
   const status = comparePrimitive(leftValue, rightValue);
+  const valueChanged = status !== 'equal';
 
   return {
     path,
     leftKey,
     rightKey,
     status,
+    keyChanged,
+    valueChanged,
     leftValue,
     rightValue,
     leftDisplay: formatValue(leftValue, options.missingLabel),
@@ -199,8 +212,12 @@ export function diffValue(
   };
 }
 
+export function nodeHasDifference(node: DiffNode): boolean {
+  return hasNodeDifference(node);
+}
+
 export function countDiffNodes(node: DiffNode): number {
-  const selfCount = node.status === 'equal' ? 0 : 1;
+  const selfCount = hasNodeDifference(node) ? 1 : 0;
 
   if (!node.children?.length) {
     return selfCount;

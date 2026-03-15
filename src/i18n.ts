@@ -1,4 +1,4 @@
-import type { Locale } from './types';
+﻿import type { Locale } from './types';
 
 type MessageKey =
   | 'title'
@@ -26,7 +26,16 @@ type MessageKey =
   | 'missing'
   | 'same'
   | 'different'
-  | 'status';
+  | 'status'
+  | 'badgeStyle'
+  | 'badgeSoft'
+  | 'badgeSolid'
+  | 'panelHeight'
+  | 'smaller'
+  | 'larger'
+  | 'resetHeight'
+  | 'fullscreen'
+  | 'exitFullscreen';
 
 type Messages = Record<MessageKey, string>;
 
@@ -52,7 +61,7 @@ export const messages: Record<Locale, Messages> = {
     clear: '清空',
     parseError: 'JSON 解析錯誤',
     invalidJson: '請先修正 JSON 格式後再比對。',
-    diffResult: 'Diff 結果',
+    diffResult: 'JSON 對照',
     legendEqual: '相同',
     legendChanged: '已變更',
     legendAdded: '新增',
@@ -66,6 +75,15 @@ export const messages: Record<Locale, Messages> = {
     same: '相同',
     different: '不同',
     status: '狀態',
+    badgeStyle: '高亮強度',
+    badgeSoft: '柔和',
+    badgeSolid: '強烈',
+    panelHeight: '對照高度',
+    smaller: '縮小',
+    larger: '放大',
+    resetHeight: '重設',
+    fullscreen: '全螢幕',
+    exitFullscreen: '離開全螢幕',
   },
   'zh-CN': {
     title: 'JSON Diff Studio',
@@ -80,7 +98,7 @@ export const messages: Record<Locale, Messages> = {
     clear: '清空',
     parseError: 'JSON 解析错误',
     invalidJson: '请先修正 JSON 格式后再比较。',
-    diffResult: 'Diff 结果',
+    diffResult: 'JSON 对照',
     legendEqual: '相同',
     legendChanged: '已变更',
     legendAdded: '新增',
@@ -94,6 +112,15 @@ export const messages: Record<Locale, Messages> = {
     same: '相同',
     different: '不同',
     status: '状态',
+    badgeStyle: '高亮强度',
+    badgeSoft: '柔和',
+    badgeSolid: '强烈',
+    panelHeight: '对照高度',
+    smaller: '缩小',
+    larger: '放大',
+    resetHeight: '重设',
+    fullscreen: '全屏',
+    exitFullscreen: '退出全屏',
   },
   en: {
     title: 'JSON Diff Studio',
@@ -108,7 +135,7 @@ export const messages: Record<Locale, Messages> = {
     clear: 'Clear',
     parseError: 'JSON parse error',
     invalidJson: 'Fix invalid JSON before comparing.',
-    diffResult: 'Diff Result',
+    diffResult: 'JSON Compare',
     legendEqual: 'Equal',
     legendChanged: 'Changed',
     legendAdded: 'Added',
@@ -122,6 +149,15 @@ export const messages: Record<Locale, Messages> = {
     same: 'Same',
     different: 'Different',
     status: 'Status',
+    badgeStyle: 'Highlight Strength',
+    badgeSoft: 'Soft',
+    badgeSolid: 'Solid',
+    panelHeight: 'Compare Height',
+    smaller: 'Smaller',
+    larger: 'Larger',
+    resetHeight: 'Reset',
+    fullscreen: 'Fullscreen',
+    exitFullscreen: 'Exit Fullscreen',
   },
   ja: {
     title: 'JSON Diff Studio',
@@ -136,7 +172,7 @@ export const messages: Record<Locale, Messages> = {
     clear: 'クリア',
     parseError: 'JSON 解析エラー',
     invalidJson: '比較する前に JSON を修正してください。',
-    diffResult: 'Diff 結果',
+    diffResult: 'JSON 比較',
     legendEqual: '同一',
     legendChanged: '変更あり',
     legendAdded: '追加',
@@ -150,6 +186,15 @@ export const messages: Record<Locale, Messages> = {
     same: '同じ',
     different: '異なる',
     status: '状態',
+    badgeStyle: 'ハイライト強度',
+    badgeSoft: 'ソフト',
+    badgeSolid: '強調',
+    panelHeight: '比較高さ',
+    smaller: '低く',
+    larger: '高く',
+    resetHeight: 'リセット',
+    fullscreen: '全画面',
+    exitFullscreen: '全画面終了',
   },
   ko: {
     title: 'JSON Diff Studio',
@@ -164,7 +209,7 @@ export const messages: Record<Locale, Messages> = {
     clear: '지우기',
     parseError: 'JSON 파싱 오류',
     invalidJson: '비교하기 전에 JSON 형식을 수정하세요.',
-    diffResult: 'Diff 결과',
+    diffResult: 'JSON 비교',
     legendEqual: '동일',
     legendChanged: '변경',
     legendAdded: '추가',
@@ -178,6 +223,15 @@ export const messages: Record<Locale, Messages> = {
     same: '같음',
     different: '다름',
     status: '상태',
+    badgeStyle: '하이라이트 강도',
+    badgeSoft: '부드럽게',
+    badgeSolid: '강하게',
+    panelHeight: '비교 높이',
+    smaller: '줄이기',
+    larger: '늘리기',
+    resetHeight: '재설정',
+    fullscreen: '전체 화면',
+    exitFullscreen: '전체 화면 종료',
   },
 };
 

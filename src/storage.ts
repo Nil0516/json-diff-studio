@@ -1,10 +1,12 @@
-import type { AppSettings } from './types';
+﻿import type { AppSettings } from './types';
 
 const storageKey = 'json-diff-studio:settings';
 
 export const defaultSettings: AppSettings = {
   locale: 'zh-TW',
   caseInsensitiveKeys: false,
+  diffBadgeStyle: 'soft',
+  panelHeight: 560,
   leftInput: '{\n  "Name": "Alice",\n  "profile": {\n    "age": 30,\n    "city": "Taipei"\n  },\n  "tags": ["frontend", "json"]\n}',
   rightInput:
     '{\n  "name": "Alice",\n  "profile": {\n    "age": 31,\n    "city": "Tokyo"\n  },\n  "tags": ["frontend", "diff"],\n  "active": true\n}',
