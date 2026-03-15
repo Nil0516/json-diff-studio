@@ -7,9 +7,9 @@ export const defaultSettings: AppSettings = {
   caseInsensitiveKeys: false,
   diffBadgeStyle: 'soft',
   panelHeight: 560,
-  leftInput: '{\n  "Name": "Alice",\n  "profile": {\n    "age": 30,\n    "city": "Taipei"\n  },\n  "tags": ["frontend", "json"]\n}',
+  leftInput: '{\n  "Name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "json", "DevOps"]\n}',
   rightInput:
-    '{\n  "name": "Alice",\n  "profile": {\n    "age": 31,\n    "city": "Tokyo"\n  },\n  "tags": ["frontend", "diff"],\n  "active": true\n}',
+    '{\n  "name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "diff"],\n  "active": true\n}',
 };
 
 export function loadSettings(): AppSettings {
