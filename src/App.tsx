@@ -607,6 +607,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() => new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [navigationRequest, setNavigationRequest] = useState<{ seq: number; direction: 'prev' | 'next' | null }>({ seq: 0, direction: null });
   const [hasDiffTargets, setHasDiffTargets] = useState(false);
   const locale = settings.locale;
@@ -616,12 +617,27 @@ export default function App() {
   }, [settings]);
 
   useEffect(() => {
-    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    document.body.style.overflow = isFullscreen || isSettingsOpen ? 'hidden' : '';
 
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isFullscreen]);
+  }, [isFullscreen, isSettingsOpen]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsSettingsOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSettingsOpen]);
 
   const comparisonState = useMemo(() => {
     try {
@@ -717,69 +733,15 @@ export default function App() {
   return (
     <div className={`app-shell diff-style-${settings.diffBadgeStyle}`} style={{ ['--panel-height' as string]: `${settings.panelHeight}px` }}>
       <header className="hero">
-        <div>
-          <p className="eyebrow">React + TypeScript + GitHub Pages</p>
-          <h1>{t(locale, 'title')}</h1>
-          <p className="hero-copy">{t(locale, 'subtitle')}</p>
-        </div>
-        <div className="config-card">
-          <h2>{t(locale, 'compareOptions')}</h2>
-          <label className="field">
-            <span>{t(locale, 'language')}</span>
-            <select
-              value={settings.locale}
-              onChange={(event) => updateSettings({ locale: event.target.value as Locale })}
-            >
-              {localeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>{t(locale, 'badgeStyle')}</span>
-            <div className="segmented-control">
-              <button
-                type="button"
-                className={settings.diffBadgeStyle === 'soft' ? 'segment active' : 'segment'}
-                onClick={() => updateSettings({ diffBadgeStyle: 'soft' })}
-              >
-                {t(locale, 'badgeSoft')}
-              </button>
-              <button
-                type="button"
-                className={settings.diffBadgeStyle === 'solid' ? 'segment active' : 'segment'}
-                onClick={() => updateSettings({ diffBadgeStyle: 'solid' })}
-              >
-                {t(locale, 'badgeSolid')}
-              </button>
-            </div>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={settings.caseInsensitiveKeys}
-              onChange={(event) => updateSettings({ caseInsensitiveKeys: event.target.checked })}
-            />
-            <span>{t(locale, 'caseInsensitive')}</span>
-          </label>
-          <div className="button-row">
-            <button type="button" onClick={() => setSettings(sampleSettings(settings))}>
-              {t(locale, 'loadSample')}
-            </button>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  leftInput: '{}',
-                  rightInput: '{}',
-                }))
-              }
-            >
-              {t(locale, 'clear')}
+        <div className="hero-bar">
+          <div className="hero-intro">
+            <p className="eyebrow">React + TypeScript + GitHub Pages</p>
+            <h1>{t(locale, 'title')}</h1>
+            <p className="hero-copy">{t(locale, 'subtitle')}</p>
+          </div>
+          <div className="hero-actions">
+            <button type="button" className="ghost settings-trigger" onClick={() => setIsSettingsOpen(true)}>
+              {t(locale, 'openSettings')}
             </button>
           </div>
         </div>
@@ -885,6 +847,111 @@ export default function App() {
           )}
         </section>
       </main>
+
+      {isSettingsOpen ? (
+        <div className="settings-modal-backdrop" onClick={() => setIsSettingsOpen(false)}>
+          <div className="settings-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+            <div className="settings-modal-header">
+              <div>
+                <p className="eyebrow modal-eyebrow">{t(locale, 'settingsTitle')}</p>
+                <h2 id="settings-modal-title">{t(locale, 'compareOptions')}</h2>
+              </div>
+              <button type="button" className="ghost settings-close" onClick={() => setIsSettingsOpen(false)}>
+                {t(locale, 'close')}
+              </button>
+            </div>
+            <div className="settings-modal-grid">
+              <section className="settings-section">
+                <h3>{t(locale, 'settingsTitle')}</h3>
+                <label className="toolbar-field toolbar-field-select">
+                  <span>{t(locale, 'language')}</span>
+                  <select
+                    value={settings.locale}
+                    onChange={(event) => updateSettings({ locale: event.target.value as Locale })}
+                  >
+                    {localeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="toolbar-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.caseInsensitiveKeys}
+                    onChange={(event) => updateSettings({ caseInsensitiveKeys: event.target.checked })}
+                  />
+                  <span>{t(locale, 'caseInsensitive')}</span>
+                </label>
+              </section>
+              <section className="settings-section">
+                <h3>{t(locale, 'appearanceTitle')}</h3>
+                <label className="toolbar-field">
+                  <span>{t(locale, 'badgeStyle')}</span>
+                  <div className="segmented-control compact">
+                    <button
+                      type="button"
+                      className={settings.diffBadgeStyle === 'soft' ? 'segment active' : 'segment'}
+                      onClick={() => updateSettings({ diffBadgeStyle: 'soft' })}
+                    >
+                      {t(locale, 'badgeSoft')}
+                    </button>
+                    <button
+                      type="button"
+                      className={settings.diffBadgeStyle === 'solid' ? 'segment active' : 'segment'}
+                      onClick={() => updateSettings({ diffBadgeStyle: 'solid' })}
+                    >
+                      {t(locale, 'badgeSolid')}
+                    </button>
+                  </div>
+                </label>
+                <div className="button-row toolbar-actions">
+                  <button type="button" onClick={() => setSettings(sampleSettings(settings))}>
+                    {t(locale, 'loadSample')}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        leftInput: '{}',
+                        rightInput: '{}',
+                      }))
+                    }
+                  >
+                    {t(locale, 'clear')}
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <footer className="app-footer">
+        <section className="footer-card">
+          <h3>{t(locale, 'footerNoticeTitle')}</h3>
+          <p>{t(locale, 'privacyNotice')}</p>
+          <p>{t(locale, 'disclaimer')}</p>
+        </section>
+        <section className="footer-card">
+          <h3>{t(locale, 'footerLicenseTitle')}</h3>
+          <p>{t(locale, 'mitLicense')}</p>
+          <div className="footer-links">
+            <a href="https://opensource.org/license/mit/" target="_blank" rel="noreferrer">MIT License</a>
+          </div>
+        </section>
+        <section className="footer-card">
+          <h3>{t(locale, 'footerTechTitle')}</h3>
+          <p>{t(locale, 'builtWith')}</p>
+          <div className="footer-links">
+            <a href="https://react.dev/" target="_blank" rel="noreferrer">React</a>
+            <a href="https://openai.com/" target="_blank" rel="noreferrer">GPT-5.4</a>
+          </div>
+        </section>
+      </footer>
     </div>
   );
 }

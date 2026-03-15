@@ -37,7 +37,18 @@ type MessageKey =
   | 'fullscreen'
   | 'exitFullscreen'
   | 'prevDiff'
-  | 'nextDiff';
+  | 'nextDiff'
+  | 'settingsTitle'
+  | 'appearanceTitle'
+  | 'privacyNotice'
+  | 'mitLicense'
+  | 'builtWith'
+  | 'disclaimer'
+  | 'openSettings'
+  | 'close'
+  | 'footerNoticeTitle'
+  | 'footerLicenseTitle'
+  | 'footerTechTitle';
 
 type Messages = Record<MessageKey, string>;
 
@@ -88,6 +99,17 @@ export const messages: Record<Locale, Messages> = {
     exitFullscreen: '離開全螢幕',
     prevDiff: '上一個差異',
     nextDiff: '下一個差異',
+    settingsTitle: '比對設定',
+    appearanceTitle: '顯示',
+    privacyNotice: '本工具僅在用戶端執行，JSON 內容不會上傳到後端服務。',
+    mitLicense: '本專案以 MIT License 釋出。',
+    builtWith: '使用 React、TypeScript 與 GPT-5.4 輔助開發。',
+    disclaimer: '請在分享或複製結果前，自行確認敏感資料與比對結果。',
+    openSettings: '開啟設定',
+    close: '關閉',
+    footerNoticeTitle: '使用提醒',
+    footerLicenseTitle: '授權',
+    footerTechTitle: '技術',
   },
   'zh-CN': {
     title: 'JSON Diff Studio',
@@ -127,6 +149,17 @@ export const messages: Record<Locale, Messages> = {
     exitFullscreen: '退出全屏',
     prevDiff: '上一个差异',
     nextDiff: '下一个差异',
+    settingsTitle: '比较设置',
+    appearanceTitle: '显示',
+    privacyNotice: '该工具仅在客户端运行，JSON 内容不会上传到后端服务。',
+    mitLicense: '本项目使用 MIT License 发布。',
+    builtWith: '使用 React、TypeScript 与 GPT-5.4 辅助开发。',
+    disclaimer: '在分享或复制结果之前，请先自行确认敏感数据与比较结果。',
+    openSettings: '打开设置',
+    close: '关闭',
+    footerNoticeTitle: '使用提醒',
+    footerLicenseTitle: '授权',
+    footerTechTitle: '技术',
   },
   en: {
     title: 'JSON Diff Studio',
@@ -166,6 +199,17 @@ export const messages: Record<Locale, Messages> = {
     exitFullscreen: 'Exit Fullscreen',
     prevDiff: 'Previous Diff',
     nextDiff: 'Next Diff',
+    settingsTitle: 'Compare Settings',
+    appearanceTitle: 'Display',
+    privacyNotice: 'This tool runs entirely in the browser. Your JSON payloads are not sent to a backend service.',
+    mitLicense: 'This project is released under the MIT License.',
+    builtWith: 'Built with React, TypeScript, and GPT-5.4-assisted development.',
+    disclaimer: 'Please verify sensitive data and comparison results before sharing or exporting them.',
+    openSettings: 'Open Settings',
+    close: 'Close',
+    footerNoticeTitle: 'Notices',
+    footerLicenseTitle: 'License',
+    footerTechTitle: 'Technology',
   },
   ja: {
     title: 'JSON Diff Studio',
@@ -205,6 +249,17 @@ export const messages: Record<Locale, Messages> = {
     exitFullscreen: '全画面終了',
     prevDiff: '前の差分',
     nextDiff: '次の差分',
+    settingsTitle: '比較設定',
+    appearanceTitle: '表示',
+    privacyNotice: 'このツールはブラウザ内でのみ動作し、JSON はバックエンドに送信されません。',
+    mitLicense: 'このプロジェクトは MIT License で公開されています。',
+    builtWith: 'React、TypeScript、そして GPT-5.4 の支援で開発しています。',
+    disclaimer: '共有や出力の前に、機密情報と比較結果をご自身で確認してください。',
+    openSettings: '設定を開く',
+    close: '閉じる',
+    footerNoticeTitle: 'お知らせ',
+    footerLicenseTitle: 'ライセンス',
+    footerTechTitle: '技術',
   },
   ko: {
     title: 'JSON Diff Studio',
@@ -244,6 +299,17 @@ export const messages: Record<Locale, Messages> = {
     exitFullscreen: '전체 화면 종료',
     prevDiff: '이전 차이',
     nextDiff: '다음 차이',
+    settingsTitle: '비교 설정',
+    appearanceTitle: '표시',
+    privacyNotice: '이 도구는 브라우저 안에서만 실행되며, JSON 내용은 백엔드 서비스로 전송되지 않습니다.',
+    mitLicense: '이 프로젝트는 MIT License로 배포됩니다.',
+    builtWith: 'React, TypeScript, GPT-5.4 지원을 바탕으로 개발되었습니다.',
+    disclaimer: '공유하거나 결과를 활용하기 전에 민감 항목과 비교 결과를 직접 확인해 주세요.',
+    openSettings: '설정 열기',
+    close: '닫기',
+    footerNoticeTitle: '안내',
+    footerLicenseTitle: '라이선스',
+    footerTechTitle: '기술',
   },
 };
 
@@ -255,6 +321,6 @@ export function t(locale: Locale, key: MessageKey, params?: Record<string, strin
   }
 
   return Object.entries(params).reduce((result, [paramKey, value]) => {
-    return result.replace(`{${paramKey}}`, String(value));
+    return result.replace('{' + paramKey + '}', String(value));
   }, template);
 }
