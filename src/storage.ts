@@ -6,6 +6,8 @@ export const defaultSettings: AppSettings = {
   locale: 'zh-TW',
   caseInsensitiveKeys: false,
   diffBadgeStyle: 'soft',
+  showOnlyDifferences: false,
+  searchQuery: '',
   panelHeight: 560,
   leftInput: '{\n  "Name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "json", "DevOps"]\n}',
   rightInput:

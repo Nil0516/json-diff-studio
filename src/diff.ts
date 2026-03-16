@@ -5,6 +5,16 @@ interface DiffOptions {
   missingLabel: string;
 }
 
+export interface DiffSummary {
+  total: number;
+  changed: number;
+  typeChanged: number;
+  added: number;
+  removed: number;
+  keyChanged: number;
+  valueChanged: number;
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -216,12 +226,63 @@ export function nodeHasDifference(node: DiffNode): boolean {
   return hasNodeDifference(node);
 }
 
-export function countDiffNodes(node: DiffNode): number {
-  const selfCount = hasNodeDifference(node) ? 1 : 0;
+export function summarizeDiffNodes(node: DiffNode): DiffSummary {
+  const summary: DiffSummary = {
+    total: 0,
+    changed: 0,
+    typeChanged: 0,
+    added: 0,
+    removed: 0,
+    keyChanged: 0,
+    valueChanged: 0,
+  };
 
-  if (!node.children?.length) {
-    return selfCount;
+  if (hasNodeDifference(node)) {
+    summary.total += 1;
+
+    if (node.status === 'changed') {
+      summary.changed += 1;
+    }
+
+    if (node.status === 'type-changed') {
+      summary.typeChanged += 1;
+    }
+
+    if (node.status === 'added') {
+      summary.added += 1;
+    }
+
+    if (node.status === 'removed') {
+      summary.removed += 1;
+    }
+
+    if (node.keyChanged) {
+      summary.keyChanged += 1;
+    }
+
+    if (node.valueChanged) {
+      summary.valueChanged += 1;
+    }
   }
 
-  return selfCount + node.children.reduce((total, child) => total + countDiffNodes(child), 0);
+  if (!node.children?.length) {
+    return summary;
+  }
+
+  for (const child of node.children) {
+    const childSummary = summarizeDiffNodes(child);
+    summary.total += childSummary.total;
+    summary.changed += childSummary.changed;
+    summary.typeChanged += childSummary.typeChanged;
+    summary.added += childSummary.added;
+    summary.removed += childSummary.removed;
+    summary.keyChanged += childSummary.keyChanged;
+    summary.valueChanged += childSummary.valueChanged;
+  }
+
+  return summary;
+}
+
+export function countDiffNodes(node: DiffNode): number {
+  return summarizeDiffNodes(node).total;
 }

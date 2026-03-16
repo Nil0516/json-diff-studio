@@ -230,6 +230,14 @@ code {
   margin: 0;
 }
 
+.result-filter-toggle {
+  min-height: auto;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .toolbar-actions {
   margin-top: auto;
 }
@@ -420,18 +428,66 @@ code {
   color: rgba(248, 250, 252, 0.72);
 }
 
-.legend {
+.summary-line strong {
+  color: #f8fafc;
+}
+
+.result-toolbar {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
   margin-top: 14px;
 }
 
+.result-toolbar-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.result-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.result-search input {
+  width: min(320px, 70vw);
+  padding: 0.7rem 0.9rem;
+}
+
+.result-search-clear {
+  padding: 0.6rem 0.8rem;
+}
+
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.legend-item strong {
+  min-width: 1.5rem;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .legend-equal {
@@ -528,6 +584,15 @@ code {
 
 .code-panel-body::-webkit-scrollbar {
   display: none;
+}
+
+.code-panel-empty {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+  color: rgba(248, 250, 252, 0.62);
+  text-align: center;
 }
 
 .minimap-panel {
@@ -700,6 +765,13 @@ code {
   color: inherit;
 }
 
+.search-highlight {
+  padding: 0 0.08rem;
+  border-radius: 4px;
+  background: rgba(111, 210, 255, 0.34);
+  color: inherit;
+}
+
 .diff-style-soft .key-emphasis {
   background: rgba(84, 166, 255, 0.32);
   border-radius: 4px;
@@ -853,6 +925,21 @@ code {
     justify-content: flex-start;
   }
 
+  .result-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .result-toolbar-controls {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .result-search input {
+    width: 100%;
+  }
+
   .code-panel {
     height: min(52vh, var(--panel-height, 560px));
     min-height: 360px;
@@ -867,3 +954,5 @@ code {
     height: calc(100vh - 260px);
   }
 }
+
+

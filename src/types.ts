@@ -12,6 +12,8 @@ export interface AppSettings {
   locale: Locale;
   caseInsensitiveKeys: boolean;
   diffBadgeStyle: DiffBadgeStyle;
+  showOnlyDifferences: boolean;
+  searchQuery: string;
   panelHeight: number;
   leftInput: string;
   rightInput: string;

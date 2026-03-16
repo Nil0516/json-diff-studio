@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode, UIEvent } from "react";
-import { countDiffNodes, diffValue } from "./diff";
+import { summarizeDiffNodes, diffValue } from "./diff";
 import { localeOptions, t } from "./i18n";
 import { defaultSettings, loadSettings, saveSettings } from "./storage";
 import type { AppSettings, DiffNode, JsonErrorState, Locale } from "./types";
@@ -51,6 +51,8 @@ function sampleSettings(current: AppSettings): AppSettings {
     locale: current.locale,
     caseInsensitiveKeys: current.caseInsensitiveKeys,
     diffBadgeStyle: current.diffBadgeStyle,
+    showOnlyDifferences: current.showOnlyDifferences,
+    searchQuery: current.searchQuery,
     panelHeight: current.panelHeight,
   };
 }
@@ -79,6 +81,69 @@ function formatInlineValue(value: unknown) {
   return JSON.stringify(value);
 }
 
+function normalizeSearchQuery(query: string) {
+  return query.trim().toLowerCase();
+}
+
+function nodeMatchesSearch(node: DiffNode, normalizedQuery: string) {
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  const searchText = [
+    node.path,
+    node.leftKey,
+    node.rightKey,
+    node.leftDisplay,
+    node.rightDisplay,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return searchText.includes(normalizedQuery);
+}
+
+function renderHighlightedText(text: string, className: string, normalizedQuery: string) {
+  if (!normalizedQuery) {
+    return <span className={className}>{text}</span>;
+  }
+
+  const normalizedText = text.toLowerCase();
+
+  if (!normalizedText.includes(normalizedQuery)) {
+    return <span className={className}>{text}</span>;
+  }
+
+  const segments: ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = normalizedText.indexOf(normalizedQuery);
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) {
+      segments.push(text.slice(cursor, matchIndex));
+    }
+
+    const nextCursor = matchIndex + normalizedQuery.length;
+    segments.push(
+      <mark
+        key={`${className}-${matchIndex}-${nextCursor}`}
+        className="search-highlight"
+      >
+        {text.slice(matchIndex, nextCursor)}
+      </mark>,
+    );
+    cursor = nextCursor;
+    matchIndex = normalizedText.indexOf(normalizedQuery, cursor);
+  }
+
+  if (cursor < text.length) {
+    segments.push(text.slice(cursor));
+  }
+
+  return <span className={className}>{segments}</span>;
+}
+
 function getMarker(status: DiffNode["status"]) {
   if (status === "added") {
     return "+";
@@ -99,15 +164,16 @@ function renderKeyPrefix(
   key: string | undefined,
   isArrayItem: boolean,
   keyChanged: boolean,
+  normalizedQuery: string,
 ) {
   if (!key || isArrayItem) {
     return null;
   }
 
-  return (
-    <span
-      className={keyChanged ? "json-key key-emphasis" : "json-key"}
-    >{`${JSON.stringify(key)}: `}</span>
+  return renderHighlightedText(
+    `${JSON.stringify(key)}: `,
+    keyChanged ? "json-key key-emphasis" : "json-key",
+    normalizedQuery,
   );
 }
 
@@ -130,6 +196,22 @@ function CollapseToggle({
   );
 }
 
+function shouldIncludeNode(
+  node: DiffNode,
+  showOnlyDifferences: boolean,
+  normalizedQuery: string,
+): boolean {
+  const childMatch =
+    node.children?.some((child) =>
+      shouldIncludeNode(child, showOnlyDifferences, normalizedQuery),
+    ) ?? false;
+
+  const passesDiffFilter = !showOnlyDifferences || node.keyChanged || node.valueChanged;
+  const matchesSearch = nodeMatchesSearch(node, normalizedQuery);
+
+  return (passesDiffFilter && matchesSearch) || childMatch;
+}
+
 function buildJsonLines(
   node: DiffNode,
   side: "left" | "right",
@@ -137,6 +219,8 @@ function buildJsonLines(
   isLast: boolean,
   collapsedPaths: Set<string>,
   onToggleCollapse: (path: string) => void,
+  showOnlyDifferences: boolean,
+  normalizedQuery: string,
   isRoot = false,
 ): JsonLine[] {
   const value = side === "left" ? node.leftValue : node.rightValue;
@@ -146,13 +230,25 @@ function buildJsonLines(
       : (node.rightKey ?? node.leftKey);
   const isArrayItem = key?.startsWith("[") ?? false;
   const suffix = isRoot || isLast ? "" : ",";
-  const keyPrefix = renderKeyPrefix(key, isArrayItem, node.keyChanged);
+  const keyPrefix = renderKeyPrefix(
+    key,
+    isArrayItem,
+    node.keyChanged,
+    normalizedQuery,
+  );
+  const visibleChildren = node.children?.filter((child) =>
+    shouldIncludeNode(child, showOnlyDifferences, normalizedQuery),
+  );
 
   if (value === undefined) {
     return [];
   }
 
-  if (Array.isArray(value) && node.children?.length) {
+  if (!shouldIncludeNode(node, showOnlyDifferences, normalizedQuery)) {
+    return [];
+  }
+
+  if (Array.isArray(value) && visibleChildren?.length) {
     const containerStatus =
       node.status === "added" || node.status === "removed" || node.keyChanged
         ? node.status
@@ -170,7 +266,7 @@ function buildJsonLines(
           />
           {keyPrefix}
           <span className="json-punct">
-            {isCollapsed ? `[${value.length}]${suffix}` : "["}
+            {isCollapsed ? `[${showOnlyDifferences ? visibleChildren.length : value.length}]${suffix}` : "["}
           </span>
         </>
       ),
@@ -180,14 +276,16 @@ function buildJsonLines(
       return [openLine];
     }
 
-    const childLines = node.children.flatMap((child, index) =>
+    const childLines = visibleChildren.flatMap((child, index) =>
       buildJsonLines(
         child,
         side,
         depth + 1,
-        index === node.children!.length - 1,
+        index === visibleChildren.length - 1,
         collapsedPaths,
         onToggleCollapse,
+        showOnlyDifferences,
+        normalizedQuery,
       ),
     );
 
@@ -206,7 +304,7 @@ function buildJsonLines(
     return [openLine, ...childLines, closeLine];
   }
 
-  if (isObjectValue(value) && node.children?.length) {
+  if (isObjectValue(value) && visibleChildren?.length) {
     const containerStatus =
       node.status === "added" || node.status === "removed" || node.keyChanged
         ? node.status
@@ -225,7 +323,7 @@ function buildJsonLines(
           />
           {keyPrefix}
           <span className="json-punct">
-            {isCollapsed ? `{${propertyCount}}${suffix}` : "{"}
+            {isCollapsed ? `{${showOnlyDifferences ? visibleChildren.length : propertyCount}}${suffix}` : "{"}
           </span>
         </>
       ),
@@ -235,14 +333,16 @@ function buildJsonLines(
       return [openLine];
     }
 
-    const childLines = node.children.flatMap((child, index) =>
+    const childLines = visibleChildren.flatMap((child, index) =>
       buildJsonLines(
         child,
         side,
         depth + 1,
-        index === node.children!.length - 1,
+        index === visibleChildren.length - 1,
         collapsedPaths,
         onToggleCollapse,
+        showOnlyDifferences,
+        normalizedQuery,
       ),
     );
 
@@ -270,13 +370,11 @@ function buildJsonLines(
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
           <span className="collapse-spacer" />
           {keyPrefix}
-          <span
-            className={
-              node.valueChanged ? "json-value value-emphasis" : "json-value"
-            }
-          >
-            {`${formatInlineValue(value)}${suffix}`}
-          </span>
+          {renderHighlightedText(
+            `${formatInlineValue(value)}${suffix}`,
+            node.valueChanged ? "json-value value-emphasis" : "json-value",
+            normalizedQuery,
+          )}
         </>
       ),
     },
@@ -300,6 +398,7 @@ function CodePanel({
   highlightToken,
   onRatioChange,
   onLineActivate,
+  emptyMessage,
 }: {
   id: "left" | "right";
   title: string;
@@ -313,6 +412,7 @@ function CodePanel({
     lineIndex: number,
     ratio: number,
   ) => void;
+  emptyMessage: string;
 }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const minimapRef = useRef<HTMLDivElement | null>(null);
@@ -488,6 +588,9 @@ function CodePanel({
       <div className="code-panel-header">{title}</div>
       <div className="code-panel-main">
         <div ref={bodyRef} className="code-panel-body" onScroll={handleScroll}>
+          {lines.length === 0 ? (
+            <div className="code-panel-empty">{emptyMessage}</div>
+          ) : null}
           {lines.map((line, index) => {
             const isFlashing = flashLine === index;
             return (
@@ -587,13 +690,20 @@ function JsonComparePanel({
   onToggleCollapse,
   navigationRequest,
   onNavigationStateChange,
+  showOnlyDifferences,
+  searchQuery,
+  emptyMessage,
 }: {
   node: DiffNode;
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
   navigationRequest: { seq: number; direction: "prev" | "next" | null };
   onNavigationStateChange: (hasDiffs: boolean) => void;
+  showOnlyDifferences: boolean;
+  searchQuery: string;
+  emptyMessage: string;
 }) {
+  const normalizedQuery = useMemo(() => normalizeSearchQuery(searchQuery), [searchQuery]);
   const leftLines = useMemo(
     () =>
       buildJsonLines(
@@ -603,9 +713,11 @@ function JsonComparePanel({
         true,
         collapsedPaths,
         onToggleCollapse,
+        showOnlyDifferences,
+        normalizedQuery,
         true,
       ),
-    [collapsedPaths, node, onToggleCollapse],
+    [collapsedPaths, node, onToggleCollapse, showOnlyDifferences, normalizedQuery],
   );
   const rightLines = useMemo(
     () =>
@@ -616,9 +728,11 @@ function JsonComparePanel({
         true,
         collapsedPaths,
         onToggleCollapse,
+        showOnlyDifferences,
+        normalizedQuery,
         true,
       ),
-    [collapsedPaths, node, onToggleCollapse],
+    [collapsedPaths, node, onToggleCollapse, showOnlyDifferences, normalizedQuery],
   );
   const [sharedRatio, setSharedRatio] = useState(0);
   const [highlightState, setHighlightState] = useState<HighlightState>({
@@ -710,6 +824,7 @@ function JsonComparePanel({
         id="left"
         title="JSON 1"
         lines={leftLines}
+        emptyMessage={emptyMessage}
         sharedRatio={sharedRatio}
         highlightedLine={highlightState.left}
         highlightToken={highlightState.token}
@@ -720,6 +835,7 @@ function JsonComparePanel({
         id="right"
         title="JSON 2"
         lines={rightLines}
+        emptyMessage={emptyMessage}
         sharedRatio={sharedRatio}
         highlightedLine={highlightState.right}
         highlightToken={highlightState.token}
@@ -829,12 +945,20 @@ export default function App() {
   ]);
 
   const { errors, parsedResult } = comparisonState;
-  const diffCount = parsedResult ? countDiffNodes(parsedResult) : 0;
+  const diffSummary = parsedResult ? summarizeDiffNodes(parsedResult) : null;
+  const diffCount = diffSummary?.total ?? 0;
+  const changedCount = (diffSummary?.changed ?? 0) + (diffSummary?.typeChanged ?? 0);
 
   useEffect(() => {
     setCollapsedPaths(new Set());
     setNavigationRequest({ seq: 0, direction: null });
-  }, [settings.leftInput, settings.rightInput, settings.caseInsensitiveKeys]);
+  }, [
+    settings.leftInput,
+    settings.rightInput,
+    settings.caseInsensitiveKeys,
+    settings.showOnlyDifferences,
+    settings.searchQuery,
+  ]);
 
   function updateSettings(patch: Partial<AppSettings>) {
     setSettings((current) => ({
@@ -1095,19 +1219,59 @@ export default function App() {
             </div>
           </div>
 
-          <div className="legend">
+          <div className="result-toolbar">
+            <div className="result-toolbar-controls">
+              <div className="result-search">
+                <input
+                  type="search"
+                  value={settings.searchQuery}
+                  onChange={(event) =>
+                    updateSettings({ searchQuery: event.target.value })
+                  }
+                  placeholder={t(locale, "searchPlaceholder")}
+                  aria-label={t(locale, "searchPlaceholder")}
+                />
+                {settings.searchQuery.trim() ? (
+                  <button
+                    type="button"
+                    className="ghost result-search-clear"
+                    onClick={() => updateSettings({ searchQuery: "" })}
+                  >
+                    {t(locale, "clearSearch")}
+                  </button>
+                ) : null}
+              </div>
+
+              <label className="toolbar-toggle result-filter-toggle">
+              <input
+                type="checkbox"
+                checked={settings.showOnlyDifferences}
+                onChange={(event) =>
+                  updateSettings({ showOnlyDifferences: event.target.checked })
+                }
+              />
+                <span>{t(locale, "showOnlyDifferences")}</span>
+              </label>
+            </div>
+
+            <div className="legend">
             <span className="legend-item legend-equal">
-              {t(locale, "legendEqual")}
+              <span>{t(locale, "legendEqual")}</span>
             </span>
             <span className="legend-item legend-changed">
-              {t(locale, "legendChanged")}
+              <span>{t(locale, "legendChanged")}</span>
+              <strong>{changedCount}</strong>
             </span>
+
             <span className="legend-item legend-added">
-              {t(locale, "legendAdded")}
+              <span>{t(locale, "legendAdded")}</span>
+              <strong>{diffSummary?.added ?? 0}</strong>
             </span>
             <span className="legend-item legend-removed">
-              {t(locale, "legendRemoved")}
+              <span>{t(locale, "legendRemoved")}</span>
+              <strong>{diffSummary?.removed ?? 0}</strong>
             </span>
+            </div>
           </div>
 
           {parsedResult ? (
@@ -1118,6 +1282,9 @@ export default function App() {
                 onToggleCollapse={handleToggleCollapse}
                 navigationRequest={navigationRequest}
                 onNavigationStateChange={setHasDiffTargets}
+                showOnlyDifferences={settings.showOnlyDifferences}
+                searchQuery={settings.searchQuery}
+                emptyMessage={settings.searchQuery.trim() ? t(locale, "noSearchResults") : t(locale, "summaryNone")}
               />
             </div>
           ) : (
@@ -1262,3 +1429,6 @@ export default function App() {
     </div>
   );
 }
+
+
+

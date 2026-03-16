@@ -40,6 +40,10 @@ type MessageKey =
   | 'nextDiff'
   | 'settingsTitle'
   | 'appearanceTitle'
+  | 'showOnlyDifferences'
+  | 'searchPlaceholder'
+  | 'clearSearch'
+  | 'noSearchResults'
   | 'privacyNotice'
   | 'mitLicense'
   | 'builtWith'
@@ -101,6 +105,10 @@ export const messages: Record<Locale, Messages> = {
     nextDiff: '下一個差異',
     settingsTitle: '比對設定',
     appearanceTitle: '顯示',
+    showOnlyDifferences: '\u53ea\u986f\u793a\u5dee\u7570\u9805\u76ee',
+    searchPlaceholder: '\u641c\u5c0b key\u3001path \u6216 value',
+    clearSearch: '\u6e05\u9664\u641c\u5c0b',
+    noSearchResults: '\u627e\u4e0d\u5230\u7b26\u5408\u641c\u5c0b\u689d\u4ef6\u7684\u7d50\u679c\u3002',
     privacyNotice: '本工具僅在用戶端執行，JSON 內容不會上傳到後端服務。',
     mitLicense: '本專案以 MIT License 釋出。',
     builtWith: '使用 React、TypeScript 與 GPT-5.4 輔助開發。',
@@ -151,6 +159,10 @@ export const messages: Record<Locale, Messages> = {
     nextDiff: '下一个差异',
     settingsTitle: '比较设置',
     appearanceTitle: '显示',
+    showOnlyDifferences: '\u53ea\u663e\u793a\u5dee\u5f02\u9879\u76ee',
+    searchPlaceholder: '\u641c\u7d22 key\u3001path \u6216 value',
+    clearSearch: '\u6e05\u9664\u641c\u7d22',
+    noSearchResults: '\u627e\u4e0d\u5230\u7b26\u5408\u641c\u7d22\u6761\u4ef6\u7684\u7ed3\u679c\u3002',
     privacyNotice: '该工具仅在客户端运行，JSON 内容不会上传到后端服务。',
     mitLicense: '本项目使用 MIT License 发布。',
     builtWith: '使用 React、TypeScript 与 GPT-5.4 辅助开发。',
@@ -201,6 +213,10 @@ export const messages: Record<Locale, Messages> = {
     nextDiff: 'Next Diff',
     settingsTitle: 'Compare Settings',
     appearanceTitle: 'Display',
+    showOnlyDifferences: 'Show only differences',
+    searchPlaceholder: 'Search key, path, or value',
+    clearSearch: 'Clear Search',
+    noSearchResults: 'No results match the current search.',
     privacyNotice: 'This tool runs entirely in the browser. Your JSON payloads are not sent to a backend service.',
     mitLicense: 'This project is released under the MIT License.',
     builtWith: 'Built with React, TypeScript, and GPT-5.4-assisted development.',
@@ -251,6 +267,10 @@ export const messages: Record<Locale, Messages> = {
     nextDiff: '次の差分',
     settingsTitle: '比較設定',
     appearanceTitle: '表示',
+    showOnlyDifferences: '\u5dee\u5206\u306e\u307f\u8868\u793a',
+    searchPlaceholder: 'key\u3001path\u3001value\u3092\u691c\u7d22',
+    clearSearch: '\u691c\u7d22\u3092\u30af\u30ea\u30a2',
+    noSearchResults: '\u6761\u4ef6\u306b\u4e00\u81f4\u3059\u308b\u7d50\u679c\u304c\u3042\u308a\u307e\u305b\u3093\u3002',
     privacyNotice: 'このツールはブラウザ内でのみ動作し、JSON はバックエンドに送信されません。',
     mitLicense: 'このプロジェクトは MIT License で公開されています。',
     builtWith: 'React、TypeScript、そして GPT-5.4 の支援で開発しています。',
@@ -301,6 +321,10 @@ export const messages: Record<Locale, Messages> = {
     nextDiff: '다음 차이',
     settingsTitle: '비교 설정',
     appearanceTitle: '표시',
+    showOnlyDifferences: '\uCC28\uC774\uAC00 \uC788\uB294 \uD56D\uBAA9\uB9CC \uD45C\uC2DC',
+    searchPlaceholder: 'key, path, value \uAC80\uC0C9',
+    clearSearch: '\uAC80\uC0C9 \uC9C0\uC6B0\uAE30',
+    noSearchResults: '\uD604\uC7AC \uAC80\uC0C9 \uC870\uAC74\uACFC \uC77C\uCE58\uD558\uB294 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.',
     privacyNotice: '이 도구는 브라우저 안에서만 실행되며, JSON 내용은 백엔드 서비스로 전송되지 않습니다.',
     mitLicense: '이 프로젝트는 MIT License로 배포됩니다.',
     builtWith: 'React, TypeScript, GPT-5.4 지원을 바탕으로 개발되었습니다.',
