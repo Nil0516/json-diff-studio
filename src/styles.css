@@ -821,6 +821,7 @@ code {
     flex-direction: column;
   }
 
+
   .hero-actions {
     width: 100%;
     justify-content: flex-start;

@@ -1,5 +1,7 @@
 ﻿# JSON Diff Studio
 
+![JSON Diff Studio Logo](public/logo-mark.png)
+
 JSON Diff Studio is a browser-based JSON diff and JSON compare tool built with React and TypeScript.
 It helps users compare two JSON payloads side by side with visual highlights, collapsible nodes, multilingual UI, and client-side persistence.
 
