@@ -7,10 +7,12 @@ export const defaultSettings: AppSettings = {
   caseInsensitiveKeys: false,
   sortKeys: false,
   diffBadgeStyle: 'soft',
+  diffFilter: 'all',
   showOnlyDifferences: false,
   searchQuery: '',
   panelHeight: 560,
-  leftInput: '{\n  "Name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "json", "DevOps"]\n}',
+  leftInput:
+    '{\n  "Name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "json", "DevOps"]\n}',
   rightInput:
     '{\n  "name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "diff"],\n  "active": true\n}',
 };

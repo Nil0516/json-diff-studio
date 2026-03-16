@@ -1,5 +1,6 @@
-﻿export type Locale = 'zh-TW' | 'zh-CN' | 'en' | 'ja' | 'ko';
+export type Locale = 'zh-TW' | 'zh-CN' | 'en' | 'ja' | 'ko';
 export type DiffBadgeStyle = 'soft' | 'solid';
+export type DiffFilter = 'all' | 'changed' | 'added' | 'removed';
 
 export type DiffStatus =
   | 'equal'
@@ -13,6 +14,7 @@ export interface AppSettings {
   caseInsensitiveKeys: boolean;
   sortKeys: boolean;
   diffBadgeStyle: DiffBadgeStyle;
+  diffFilter: DiffFilter;
   showOnlyDifferences: boolean;
   searchQuery: string;
   panelHeight: number;

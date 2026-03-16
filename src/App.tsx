@@ -1,13 +1,15 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode, UIEvent } from "react";
-import { summarizeDiffNodes, diffValue } from "./diff";
+import { getPrimaryDiffKind, summarizeDiffNodes, diffValue } from "./diff";
 import { localeOptions, t } from "./i18n";
 import { defaultSettings, loadSettings, saveSettings } from "./storage";
-import type { AppSettings, DiffNode, JsonErrorState, Locale } from "./types";
+import type { AppSettings, DiffFilter, DiffNode, JsonErrorState, Locale } from "./types";
 
 interface JsonLine {
   marker: string;
   status: DiffNode["status"];
+  primaryDiffKind: Exclude<DiffFilter, "all"> | null;
+  isSearchMatch: boolean;
   content: ReactNode;
 }
 
@@ -51,6 +53,7 @@ function sampleSettings(current: AppSettings): AppSettings {
     locale: current.locale,
     caseInsensitiveKeys: current.caseInsensitiveKeys,
     sortKeys: current.sortKeys,
+    diffFilter: current.diffFilter,
     diffBadgeStyle: current.diffBadgeStyle,
     showOnlyDifferences: current.showOnlyDifferences,
     searchQuery: current.searchQuery,
@@ -145,6 +148,14 @@ function renderHighlightedText(text: string, className: string, normalizedQuery:
   return <span className={className}>{segments}</span>;
 }
 
+function getDisplayStatus(node: DiffNode): DiffNode["status"] {
+  if (node.status !== "equal") {
+    return node.status;
+  }
+
+  return node.keyChanged ? "changed" : "equal";
+}
+
 function getMarker(status: DiffNode["status"]) {
   if (status === "added") {
     return "+";
@@ -163,6 +174,18 @@ function getMarker(status: DiffNode["status"]) {
 
 function shouldEmphasizeValue(node: DiffNode) {
   return node.status === "changed" || node.status === "type-changed";
+}
+
+function nodeHasVisibleDifference(
+  node: DiffNode,
+  caseInsensitiveKeys: boolean,
+) {
+  const keyDifference = caseInsensitiveKeys ? false : node.keyChanged;
+  return keyDifference || node.valueChanged;
+}
+
+function matchesDiffFilter(node: DiffNode, diffFilter: DiffFilter) {
+  return diffFilter === "all" || getPrimaryDiffKind(node) === diffFilter;
 }
 
 function renderKeyPrefix(
@@ -205,16 +228,26 @@ function shouldIncludeNode(
   node: DiffNode,
   showOnlyDifferences: boolean,
   normalizedQuery: string,
+  diffFilter: DiffFilter,
+  caseInsensitiveKeys: boolean,
 ): boolean {
   const childMatch =
     node.children?.some((child) =>
-      shouldIncludeNode(child, showOnlyDifferences, normalizedQuery),
+      shouldIncludeNode(
+        child,
+        showOnlyDifferences,
+        normalizedQuery,
+        diffFilter,
+        caseInsensitiveKeys,
+      ),
     ) ?? false;
 
-  const passesDiffFilter = !showOnlyDifferences || node.keyChanged || node.valueChanged;
+  const passesDiffToggle =
+    !showOnlyDifferences || nodeHasVisibleDifference(node, caseInsensitiveKeys);
   const matchesSearch = nodeMatchesSearch(node, normalizedQuery);
+  const passesPrimaryFilter = matchesDiffFilter(node, diffFilter);
 
-  return (passesDiffFilter && matchesSearch) || childMatch;
+  return (passesDiffToggle && matchesSearch && passesPrimaryFilter) || childMatch;
 }
 
 function buildJsonLines(
@@ -226,6 +259,8 @@ function buildJsonLines(
   onToggleCollapse: (path: string) => void,
   showOnlyDifferences: boolean,
   normalizedQuery: string,
+  diffFilter: DiffFilter,
+  caseInsensitiveKeys: boolean,
   isRoot = false,
 ): JsonLine[] {
   const value = side === "left" ? node.leftValue : node.rightValue;
@@ -241,15 +276,44 @@ function buildJsonLines(
     node.keyChanged,
     normalizedQuery,
   );
+  const displayStatus = getDisplayStatus(node);
   const visibleChildren = node.children?.filter((child) =>
-    shouldIncludeNode(child, showOnlyDifferences, normalizedQuery),
+    shouldIncludeNode(
+      child,
+      showOnlyDifferences,
+      normalizedQuery,
+      diffFilter,
+      caseInsensitiveKeys,
+    ),
   );
+  const isSearchMatch = nodeMatchesSearch(node, normalizedQuery);
+  const primaryDiffKind = getPrimaryDiffKind(node);
 
   if (value === undefined) {
-    return [];
+    return [
+      {
+        marker: "",
+        status: displayStatus,
+        primaryDiffKind,
+        isSearchMatch,
+        content: (
+          <>
+            <span className="json-indent" style={{ width: `${depth * 20}px` }} />
+            <span className="collapse-spacer" />
+            <span className="json-placeholder"> </span>
+          </>
+        ),
+      },
+    ];
   }
 
-  if (!shouldIncludeNode(node, showOnlyDifferences, normalizedQuery)) {
+  if (!shouldIncludeNode(
+    node,
+    showOnlyDifferences,
+    normalizedQuery,
+    diffFilter,
+    caseInsensitiveKeys,
+  )) {
     return [];
   }
 
@@ -262,6 +326,8 @@ function buildJsonLines(
     const openLine: JsonLine = {
       marker: getMarker(containerStatus),
       status: containerStatus,
+      primaryDiffKind,
+      isSearchMatch,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
@@ -291,12 +357,16 @@ function buildJsonLines(
         onToggleCollapse,
         showOnlyDifferences,
         normalizedQuery,
+        diffFilter,
+        caseInsensitiveKeys,
       ),
     );
 
     const closeLine: JsonLine = {
       marker: getMarker(containerStatus),
       status: containerStatus,
+      primaryDiffKind,
+      isSearchMatch,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
@@ -319,6 +389,8 @@ function buildJsonLines(
     const openLine: JsonLine = {
       marker: getMarker(containerStatus),
       status: containerStatus,
+      primaryDiffKind,
+      isSearchMatch,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
@@ -348,12 +420,16 @@ function buildJsonLines(
         onToggleCollapse,
         showOnlyDifferences,
         normalizedQuery,
+        diffFilter,
+        caseInsensitiveKeys,
       ),
     );
 
     const closeLine: JsonLine = {
       marker: getMarker(containerStatus),
       status: containerStatus,
+      primaryDiffKind,
+      isSearchMatch,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
@@ -368,8 +444,10 @@ function buildJsonLines(
 
   return [
     {
-      marker: getMarker(node.status === "equal" ? "equal" : node.status),
-      status: node.status === "equal" ? "equal" : node.status,
+      marker: getMarker(displayStatus),
+      status: displayStatus,
+      primaryDiffKind,
+      isSearchMatch,
       content: (
         <>
           <span className="json-indent" style={{ width: `${depth * 20}px` }} />
@@ -656,6 +734,18 @@ function CodePanel({
   );
 }
 
+function buildSearchRatios(lines: JsonLine[]) {
+  return lines.reduce<number[]>((ratios, line, index) => {
+    if (!line.isSearchMatch) {
+      return ratios;
+    }
+
+    const ratio = lines.length <= 1 ? 0 : index / (lines.length - 1);
+    ratios.push(ratio);
+    return ratios;
+  }, []);
+}
+
 function buildDiffRatios(lines: JsonLine[]) {
   return lines.reduce<number[]>((ratios, line, index) => {
     if (line.status === "equal") {
@@ -666,6 +756,27 @@ function buildDiffRatios(lines: JsonLine[]) {
     ratios.push(ratio);
     return ratios;
   }, []);
+}
+
+function findNearestSearchIndex(lines: JsonLine[], ratio: number) {
+  const searchIndexes = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line.isSearchMatch)
+    .map(({ index }) => index);
+
+  if (searchIndexes.length === 0) {
+    return null;
+  }
+
+  return searchIndexes.reduce((closest, current) => {
+    const currentDistance = Math.abs(
+      (lines.length <= 1 ? 0 : current / (lines.length - 1)) - ratio,
+    );
+    const closestDistance = Math.abs(
+      (lines.length <= 1 ? 0 : closest / (lines.length - 1)) - ratio,
+    );
+    return currentDistance < closestDistance ? current : closest;
+  }, searchIndexes[0]);
 }
 
 function findNearestDiffIndex(lines: JsonLine[], ratio: number) {
@@ -694,8 +805,12 @@ function JsonComparePanel({
   collapsedPaths,
   onToggleCollapse,
   navigationRequest,
+  searchNavigationRequest,
   onNavigationStateChange,
+  onSearchStateChange,
   showOnlyDifferences,
+  diffFilter,
+  caseInsensitiveKeys,
   searchQuery,
   emptyMessage,
 }: {
@@ -703,8 +818,12 @@ function JsonComparePanel({
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
   navigationRequest: { seq: number; direction: "prev" | "next" | null };
+  searchNavigationRequest: { seq: number; direction: "prev" | "next" | null };
   onNavigationStateChange: (hasDiffs: boolean) => void;
+  onSearchStateChange: (hasMatches: boolean) => void;
   showOnlyDifferences: boolean;
+  diffFilter: DiffFilter;
+  caseInsensitiveKeys: boolean;
   searchQuery: string;
   emptyMessage: string;
 }) {
@@ -720,9 +839,19 @@ function JsonComparePanel({
         onToggleCollapse,
         showOnlyDifferences,
         normalizedQuery,
+        diffFilter,
+        caseInsensitiveKeys,
         true,
       ),
-    [collapsedPaths, node, onToggleCollapse, showOnlyDifferences, normalizedQuery],
+    [
+      collapsedPaths,
+      node,
+      onToggleCollapse,
+      showOnlyDifferences,
+      normalizedQuery,
+      diffFilter,
+      caseInsensitiveKeys,
+    ],
   );
   const rightLines = useMemo(
     () =>
@@ -735,9 +864,19 @@ function JsonComparePanel({
         onToggleCollapse,
         showOnlyDifferences,
         normalizedQuery,
+        diffFilter,
+        caseInsensitiveKeys,
         true,
       ),
-    [collapsedPaths, node, onToggleCollapse, showOnlyDifferences, normalizedQuery],
+    [
+      collapsedPaths,
+      node,
+      onToggleCollapse,
+      showOnlyDifferences,
+      normalizedQuery,
+      diffFilter,
+      caseInsensitiveKeys,
+    ],
   );
   const [sharedRatio, setSharedRatio] = useState(0);
   const [highlightState, setHighlightState] = useState<HighlightState>({
@@ -746,6 +885,7 @@ function JsonComparePanel({
     token: 0,
   });
   const handledNavigationSeq = useRef(0);
+  const handledSearchNavigationSeq = useRef(0);
 
   const diffRatios = useMemo(() => {
     return Array.from(
@@ -753,15 +893,26 @@ function JsonComparePanel({
     ).sort((a, b) => a - b);
   }, [leftLines, rightLines]);
 
+  const searchRatios = useMemo(() => {
+    return Array.from(
+      new Set([...buildSearchRatios(leftLines), ...buildSearchRatios(rightLines)]),
+    ).sort((a, b) => a - b);
+  }, [leftLines, rightLines]);
+
   useEffect(() => {
     setSharedRatio(0);
     setHighlightState({ left: null, right: null, token: 0 });
     handledNavigationSeq.current = 0;
+    handledSearchNavigationSeq.current = 0;
   }, [leftLines.length, rightLines.length]);
 
   useEffect(() => {
     onNavigationStateChange(diffRatios.length > 0);
   }, [diffRatios.length, onNavigationStateChange]);
+
+  useEffect(() => {
+    onSearchStateChange(searchRatios.length > 0);
+  }, [searchRatios.length, onSearchStateChange]);
 
   useEffect(() => {
     if (!navigationRequest.direction || diffRatios.length === 0) {
@@ -774,12 +925,8 @@ function JsonComparePanel({
 
     handledNavigationSeq.current = navigationRequest.seq;
 
-    const nextCandidates = diffRatios.filter(
-      (ratio) => ratio > sharedRatio + 0.0001,
-    );
-    const prevCandidates = diffRatios.filter(
-      (ratio) => ratio < sharedRatio - 0.0001,
-    );
+    const nextCandidates = diffRatios.filter((ratio) => ratio > sharedRatio + 0.0001);
+    const prevCandidates = diffRatios.filter((ratio) => ratio < sharedRatio - 0.0001);
 
     const targetRatio =
       navigationRequest.direction === "next"
@@ -802,6 +949,44 @@ function JsonComparePanel({
     navigationRequest.direction,
     navigationRequest.seq,
     rightLines,
+    sharedRatio,
+  ]);
+
+  useEffect(() => {
+    if (!searchNavigationRequest.direction || searchRatios.length === 0) {
+      return;
+    }
+
+    if (searchNavigationRequest.seq === handledSearchNavigationSeq.current) {
+      return;
+    }
+
+    handledSearchNavigationSeq.current = searchNavigationRequest.seq;
+
+    const nextCandidates = searchRatios.filter((ratio) => ratio > sharedRatio + 0.0001);
+    const prevCandidates = searchRatios.filter((ratio) => ratio < sharedRatio - 0.0001);
+
+    const targetRatio =
+      searchNavigationRequest.direction === "next"
+        ? (nextCandidates[0] ?? searchRatios[0])
+        : (prevCandidates[prevCandidates.length - 1] ??
+          searchRatios[searchRatios.length - 1]);
+
+    const leftIndex = findNearestSearchIndex(leftLines, targetRatio);
+    const rightIndex = findNearestSearchIndex(rightLines, targetRatio);
+
+    setSharedRatio(targetRatio);
+    setHighlightState((current) => ({
+      left: leftIndex,
+      right: rightIndex,
+      token: current.token + 1,
+    }));
+  }, [
+    leftLines,
+    rightLines,
+    searchNavigationRequest.direction,
+    searchNavigationRequest.seq,
+    searchRatios,
     sharedRatio,
   ]);
 
@@ -863,7 +1048,12 @@ export default function App() {
     seq: number;
     direction: "prev" | "next" | null;
   }>({ seq: 0, direction: null });
+  const [searchNavigationRequest, setSearchNavigationRequest] = useState<{
+    seq: number;
+    direction: "prev" | "next" | null;
+  }>({ seq: 0, direction: null });
   const [hasDiffTargets, setHasDiffTargets] = useState(false);
+  const [hasSearchTargets, setHasSearchTargets] = useState(false);
   const locale = settings.locale;
   const currentLocaleOption =
     localeOptions.find((option) => option.value === settings.locale) ??
@@ -955,15 +1145,27 @@ export default function App() {
   const diffSummary = parsedResult ? summarizeDiffNodes(parsedResult) : null;
   const diffCount = diffSummary?.total ?? 0;
   const changedCount = (diffSummary?.changed ?? 0) + (diffSummary?.typeChanged ?? 0);
+  const filterCounts = {
+    all: diffCount,
+    changed: changedCount,
+    added: diffSummary?.added ?? 0,
+    removed: diffSummary?.removed ?? 0,
+  } satisfies Record<DiffFilter, number>;
+  const normalizedSearchQuery = useMemo(
+    () => normalizeSearchQuery(settings.searchQuery),
+    [settings.searchQuery],
+  );
 
   useEffect(() => {
     setCollapsedPaths(new Set());
     setNavigationRequest({ seq: 0, direction: null });
+    setSearchNavigationRequest({ seq: 0, direction: null });
   }, [
     settings.leftInput,
     settings.rightInput,
     settings.caseInsensitiveKeys,
     settings.sortKeys,
+    settings.diffFilter,
     settings.showOnlyDifferences,
     settings.searchQuery,
   ]);
@@ -1011,6 +1213,46 @@ export default function App() {
       seq: current.seq + 1,
       direction,
     }));
+  }
+
+  function requestSearchNavigation(direction: "prev" | "next") {
+    setSearchNavigationRequest((current) => ({
+      seq: current.seq + 1,
+      direction,
+    }));
+  }
+
+  function expandDiffPaths() {
+    if (!parsedResult) {
+      return;
+    }
+
+    const next = new Set<string>();
+
+    function visit(node: DiffNode) {
+      if (!node.children?.length) {
+        return;
+      }
+
+      for (const child of node.children) {
+        const matches = shouldIncludeNode(
+          child,
+          true,
+          normalizedSearchQuery,
+          settings.diffFilter,
+          settings.caseInsensitiveKeys,
+        );
+
+        if (!matches) {
+          next.add(child.path);
+        }
+
+        visit(child);
+      }
+    }
+
+    visit(parsedResult);
+    setCollapsedPaths(next);
   }
 
   return (
@@ -1218,7 +1460,7 @@ export default function App() {
           </div>
 
           <div className="result-toolbar">
-            <div className="result-toolbar-controls">
+            <div className="result-toolbar-row result-toolbar-row-search">
               <div className="result-search">
                 <input
                   type="search"
@@ -1229,6 +1471,22 @@ export default function App() {
                   placeholder={t(locale, "searchPlaceholder")}
                   aria-label={t(locale, "searchPlaceholder")}
                 />
+                <button
+                  type="button"
+                  className="ghost result-search-clear"
+                  onClick={() => requestSearchNavigation("prev")}
+                  disabled={!settings.searchQuery.trim() || !hasSearchTargets}
+                >
+                  {t(locale, "searchPrev")}
+                </button>
+                <button
+                  type="button"
+                  className="ghost result-search-clear"
+                  onClick={() => requestSearchNavigation("next")}
+                  disabled={!settings.searchQuery.trim() || !hasSearchTargets}
+                >
+                  {t(locale, "searchNext")}
+                </button>
                 {settings.searchQuery.trim() ? (
                   <button
                     type="button"
@@ -1239,36 +1497,54 @@ export default function App() {
                   </button>
                 ) : null}
               </div>
-
-              <label className="toolbar-toggle result-filter-toggle">
-              <input
-                type="checkbox"
-                checked={settings.showOnlyDifferences}
-                onChange={(event) =>
-                  updateSettings({ showOnlyDifferences: event.target.checked })
-                }
-              />
-                <span>{t(locale, "showOnlyDifferences")}</span>
-              </label>
             </div>
 
-            <div className="legend">
-            <span className="legend-item legend-equal">
-              <span>{t(locale, "legendEqual")}</span>
-            </span>
-            <span className="legend-item legend-changed">
-              <span>{t(locale, "legendChanged")}</span>
-              <strong>{changedCount}</strong>
-            </span>
+            <div className="result-toolbar-row result-toolbar-row-filters">
+              <div className="filter-tabs" role="tablist" aria-label="Diff filters">
+                {(
+                  [
+                    ["all", t(locale, "filterAll")],
+                    ["changed", t(locale, "filterChanged")],
+                    ["added", t(locale, "filterAdded")],
+                    ["removed", t(locale, "filterRemoved")],
+                  ] as const
+                ).map(([filter, label]) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={
+                      settings.diffFilter === filter
+                        ? "legend-item filter-pill active"
+                        : "legend-item filter-pill"
+                    }
+                    onClick={() => updateSettings({ diffFilter: filter })}
+                  >
+                    <span>{label}</span>
+                    <strong>{filterCounts[filter]}</strong>
+                  </button>
+                ))}
+              </div>
 
-            <span className="legend-item legend-added">
-              <span>{t(locale, "legendAdded")}</span>
-              <strong>{diffSummary?.added ?? 0}</strong>
-            </span>
-            <span className="legend-item legend-removed">
-              <span>{t(locale, "legendRemoved")}</span>
-              <strong>{diffSummary?.removed ?? 0}</strong>
-            </span>
+              <div className="result-inline-actions">
+                <label className="toolbar-toggle result-filter-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.showOnlyDifferences}
+                    onChange={(event) =>
+                      updateSettings({ showOnlyDifferences: event.target.checked })
+                    }
+                  />
+                  <span>{t(locale, "showOnlyDifferences")}</span>
+                </label>
+                <button
+                  type="button"
+                  className="ghost action-btn"
+                  onClick={expandDiffPaths}
+                  disabled={!parsedResult}
+                >
+                  {t(locale, "expandDiffPaths")}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1279,8 +1555,12 @@ export default function App() {
                 collapsedPaths={collapsedPaths}
                 onToggleCollapse={handleToggleCollapse}
                 navigationRequest={navigationRequest}
+                searchNavigationRequest={searchNavigationRequest}
                 onNavigationStateChange={setHasDiffTargets}
+                onSearchStateChange={setHasSearchTargets}
                 showOnlyDifferences={settings.showOnlyDifferences}
+                diffFilter={settings.diffFilter}
+                caseInsensitiveKeys={settings.caseInsensitiveKeys}
                 searchQuery={settings.searchQuery}
                 emptyMessage={settings.searchQuery.trim() ? t(locale, "noSearchResults") : t(locale, "summaryNone")}
               />

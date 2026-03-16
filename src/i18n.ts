@@ -19,6 +19,13 @@ type MessageKey =
   | 'legendChanged'
   | 'legendAdded'
   | 'legendRemoved'
+  | 'filterAll'
+  | 'filterChanged'
+  | 'filterAdded'
+  | 'filterRemoved'
+  | 'searchPrev'
+  | 'searchNext'
+  | 'expandDiffPaths'
   | 'summary'
   | 'summaryValue'
   | 'summaryNone'
@@ -85,6 +92,13 @@ export const messages: Record<Locale, Messages> = {
     legendChanged: '已變更',
     legendAdded: '新增',
     legendRemoved: '刪除',
+    filterAll: '\u5168\u90e8',
+    filterChanged: '\u5df2\u8b8a\u66f4',
+    filterAdded: '\u65b0\u589e',
+    filterRemoved: '\u522a\u9664',
+    searchPrev: '\u4e0a\u4e00\u7b46\u547d\u4e2d',
+    searchNext: '\u4e0b\u4e00\u7b46\u547d\u4e2d',
+    expandDiffPaths: '\u5c55\u958b\u5dee\u7570\u8def\u5f91',
     summary: '差異摘要',
     summaryValue: '共 {count} 個差異節點',
     summaryNone: '目前沒有差異。',
@@ -140,6 +154,13 @@ export const messages: Record<Locale, Messages> = {
     legendChanged: '已变更',
     legendAdded: '新增',
     legendRemoved: '删除',
+    filterAll: '\u5168\u90e8',
+    filterChanged: '\u5df2\u53d8\u66f4',
+    filterAdded: '\u65b0\u589e',
+    filterRemoved: '\u5220\u9664',
+    searchPrev: '\u4e0a\u4e00\u4e2a\u547d\u4e2d',
+    searchNext: '\u4e0b\u4e00\u4e2a\u547d\u4e2d',
+    expandDiffPaths: '\u5c55\u5f00\u5dee\u5f02\u8def\u5f84',
     summary: '差异摘要',
     summaryValue: '共 {count} 个差异节点',
     summaryNone: '当前没有差异。',
@@ -195,6 +216,13 @@ export const messages: Record<Locale, Messages> = {
     legendChanged: 'Changed',
     legendAdded: 'Added',
     legendRemoved: 'Removed',
+    filterAll: 'All',
+    filterChanged: 'Changed',
+    filterAdded: 'Added',
+    filterRemoved: 'Removed',
+    searchPrev: 'Previous Match',
+    searchNext: 'Next Match',
+    expandDiffPaths: 'Expand Diff Paths',
     summary: 'Summary',
     summaryValue: '{count} diff nodes found',
     summaryNone: 'No differences right now.',
@@ -250,6 +278,13 @@ export const messages: Record<Locale, Messages> = {
     legendChanged: '変更あり',
     legendAdded: '追加',
     legendRemoved: '削除',
+    filterAll: '\u3059\u3079\u3066',
+    filterChanged: '\u5909\u66f4',
+    filterAdded: '\u8ffd\u52a0',
+    filterRemoved: '\u524a\u9664',
+    searchPrev: '\u524d\u306e\u4e00\u81f4',
+    searchNext: '\u6b21\u306e\u4e00\u81f4',
+    expandDiffPaths: '\u5dee\u5206\u30d1\u30b9\u3092\u5c55\u958b',
     summary: '差分サマリー',
     summaryValue: '差分ノード数: {count}',
     summaryNone: '差分はありません。',
@@ -305,6 +340,13 @@ export const messages: Record<Locale, Messages> = {
     legendChanged: '변경',
     legendAdded: '추가',
     legendRemoved: '삭제',
+    filterAll: '\uC804\uCCB4',
+    filterChanged: '\uBCC0\uACBD',
+    filterAdded: '\uCD94\uAC00',
+    filterRemoved: '\uC0AD\uC81C',
+    searchPrev: '\uC774\uC804 \uAC80\uC0C9 \uACB0\uACFC',
+    searchNext: '\uB2E4\uC74C \uAC80\uC0C9 \uACB0\uACFC',
+    expandDiffPaths: '\uCC28\uC774 \uACBD\uB85C \uD3BC\uCE58\uAE30',
     summary: '요약',
     summaryValue: '차이 노드 {count}개',
     summaryNone: '현재 차이가 없습니다.',

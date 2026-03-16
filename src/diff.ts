@@ -1,4 +1,4 @@
-﻿import type { DiffNode, DiffStatus } from './types';
+﻿import type { DiffFilter, DiffNode, DiffStatus } from './types';
 
 interface DiffOptions {
   caseInsensitiveKeys: boolean;
@@ -80,16 +80,34 @@ function hasNodeDifference(node: DiffNode) {
   return node.keyChanged || node.valueChanged;
 }
 
-function shouldCountAsPrimaryDiff(node: DiffNode) {
+export function getPrimaryDiffKind(
+  node: DiffNode,
+): Exclude<DiffFilter, 'all'> | null {
   if (!hasNodeDifference(node)) {
-    return false;
+    return null;
+  }
+
+  if (node.status === 'added') {
+    return 'added';
+  }
+
+  if (node.status === 'removed') {
+    return 'removed';
+  }
+
+  if (node.keyChanged) {
+    return 'changed';
   }
 
   if (!node.children?.length) {
-    return true;
+    return node.status === 'equal' ? null : 'changed';
   }
 
-  return node.status === 'added' || node.status === 'removed';
+  return null;
+}
+
+function shouldCountAsPrimaryDiff(node: DiffNode) {
+  return getPrimaryDiffKind(node) !== null;
 }
 
 function buildObjectKeyOrder(
@@ -97,24 +115,26 @@ function buildObjectKeyOrder(
   right: Record<string, unknown>,
   options: DiffOptions,
 ) {
+  const leftKeys = Object.keys(left).map((key) =>
+    normalizeKey(key, options.caseInsensitiveKeys),
+  );
+  const rightKeys = Object.keys(right).map((key) =>
+    normalizeKey(key, options.caseInsensitiveKeys),
+  );
   const orderedKeys: string[] = [];
   const seen = new Set<string>();
+  const maxLength = Math.max(leftKeys.length, rightKeys.length);
 
-  for (const key of Object.keys(left)) {
-    const normalizedKey = normalizeKey(key, options.caseInsensitiveKeys);
+  for (let index = 0; index < maxLength; index += 1) {
+    const candidates = [leftKeys[index], rightKeys[index]];
 
-    if (!seen.has(normalizedKey)) {
-      seen.add(normalizedKey);
-      orderedKeys.push(normalizedKey);
-    }
-  }
+    for (const candidate of candidates) {
+      if (!candidate || seen.has(candidate)) {
+        continue;
+      }
 
-  for (const key of Object.keys(right)) {
-    const normalizedKey = normalizeKey(key, options.caseInsensitiveKeys);
-
-    if (!seen.has(normalizedKey)) {
-      seen.add(normalizedKey);
-      orderedKeys.push(normalizedKey);
+      seen.add(candidate);
+      orderedKeys.push(candidate);
     }
   }
 
@@ -127,33 +147,155 @@ function diffObjects(
   path: string,
   options: DiffOptions,
 ): DiffNode[] {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
   const leftMap = new Map<string, string>();
   const rightMap = new Map<string, string>();
 
-  Object.keys(left).forEach((key) => {
+  leftKeys.forEach((key) => {
     leftMap.set(normalizeKey(key, options.caseInsensitiveKeys), key);
   });
 
-  Object.keys(right).forEach((key) => {
+  rightKeys.forEach((key) => {
     rightMap.set(normalizeKey(key, options.caseInsensitiveKeys), key);
   });
 
-  const allKeys = buildObjectKeyOrder(left, right, options);
+  if (options.caseInsensitiveKeys || options.sortKeys) {
+    const allKeys = buildObjectKeyOrder(left, right, options);
 
-  return allKeys.map((normalizedKey) => {
-    const leftKey = leftMap.get(normalizedKey);
-    const rightKey = rightMap.get(normalizedKey);
-    const displayKey = leftKey ?? rightKey ?? normalizedKey;
+    return allKeys.map((normalizedKey) => {
+      const leftKey = leftMap.get(normalizedKey);
+      const rightKey = rightMap.get(normalizedKey);
+      const displayKey = leftKey ?? rightKey ?? normalizedKey;
 
-    return diffValue(
-      leftKey ? left[leftKey] : undefined,
-      rightKey ? right[rightKey] : undefined,
-      makePath(path, displayKey),
-      options,
-      leftKey,
-      rightKey,
+      return diffValue(
+        leftKey ? left[leftKey] : undefined,
+        rightKey ? right[rightKey] : undefined,
+        makePath(path, displayKey),
+        options,
+        leftKey,
+        rightKey,
+      );
+    });
+  }
+
+  const children: DiffNode[] = [];
+  let leftIndex = 0;
+  let rightIndex = 0;
+
+  while (leftIndex < leftKeys.length || rightIndex < rightKeys.length) {
+    const leftKey = leftKeys[leftIndex];
+    const rightKey = rightKeys[rightIndex];
+
+    if (leftKey === undefined) {
+      children.push(
+        diffValue(
+          undefined,
+          right[rightKey],
+          makePath(path, rightKey),
+          options,
+          undefined,
+          rightKey,
+        ),
+      );
+      rightIndex += 1;
+      continue;
+    }
+
+    if (rightKey === undefined) {
+      children.push(
+        diffValue(
+          left[leftKey],
+          undefined,
+          makePath(path, leftKey),
+          options,
+          leftKey,
+          undefined,
+        ),
+      );
+      leftIndex += 1;
+      continue;
+    }
+
+    if (leftKey === rightKey) {
+      children.push(
+        diffValue(
+          left[leftKey],
+          right[rightKey],
+          makePath(path, leftKey),
+          options,
+          leftKey,
+          rightKey,
+        ),
+      );
+      leftIndex += 1;
+      rightIndex += 1;
+      continue;
+    }
+
+    const rightHasLeftLater = rightKeys.indexOf(leftKey, rightIndex + 1) !== -1;
+    const leftHasRightLater = leftKeys.indexOf(rightKey, leftIndex + 1) !== -1;
+
+    if (!rightHasLeftLater && !leftHasRightLater) {
+      children.push(
+        diffValue(
+          left[leftKey],
+          right[rightKey],
+          makePath(path, leftKey),
+          options,
+          leftKey,
+          rightKey,
+        ),
+      );
+      leftIndex += 1;
+      rightIndex += 1;
+      continue;
+    }
+
+    if (rightHasLeftLater && !leftHasRightLater) {
+      children.push(
+        diffValue(
+          undefined,
+          right[rightKey],
+          makePath(path, rightKey),
+          options,
+          undefined,
+          rightKey,
+        ),
+      );
+      rightIndex += 1;
+      continue;
+    }
+
+    if (!rightHasLeftLater && leftHasRightLater) {
+      children.push(
+        diffValue(
+          left[leftKey],
+          undefined,
+          makePath(path, leftKey),
+          options,
+          leftKey,
+          undefined,
+        ),
+      );
+      leftIndex += 1;
+      continue;
+    }
+
+    children.push(
+      diffValue(
+        left[leftKey],
+        undefined,
+        makePath(path, leftKey),
+        options,
+        leftKey,
+        undefined,
+      ),
     );
-  });
+    leftIndex += 1;
+  }
+
+  return children;
 }
 
 function diffArrays(left: unknown[], right: unknown[], path: string, options: DiffOptions) {
@@ -282,13 +424,15 @@ export function summarizeDiffNodes(node: DiffNode): DiffSummary {
   if (shouldCountAsPrimaryDiff(node)) {
     summary.total += 1;
 
-    if (node.status === 'added') {
+    const primaryDiffKind = getPrimaryDiffKind(node);
+
+    if (primaryDiffKind === 'added') {
       summary.added += 1;
-    } else if (node.status === 'removed') {
+    } else if (primaryDiffKind === 'removed') {
       summary.removed += 1;
     } else if (node.status === 'type-changed') {
       summary.typeChanged += 1;
-    } else if (node.status === 'changed' || node.keyChanged) {
+    } else if (primaryDiffKind === 'changed') {
       summary.changed += 1;
     }
   }
