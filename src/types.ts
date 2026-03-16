@@ -11,6 +11,7 @@ export type DiffStatus =
 export interface AppSettings {
   locale: Locale;
   caseInsensitiveKeys: boolean;
+  sortKeys: boolean;
   diffBadgeStyle: DiffBadgeStyle;
   showOnlyDifferences: boolean;
   searchQuery: string;

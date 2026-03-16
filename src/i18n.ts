@@ -7,6 +7,7 @@ type MessageKey =
   | 'rightTitle'
   | 'compareOptions'
   | 'caseInsensitive'
+  | 'sortKeys'
   | 'language'
   | 'formatJson'
   | 'loadSample'
@@ -72,6 +73,7 @@ export const messages: Record<Locale, Messages> = {
     rightTitle: 'JSON 2',
     compareOptions: '比對設定',
     caseInsensitive: 'Key 大小寫不敏感',
+    sortKeys: '\u4f9d Key \u6392\u5e8f\u7269\u4ef6\u6b04\u4f4d',
     language: '語言',
     formatJson: '格式化 JSON',
     loadSample: '載入範例',
@@ -126,6 +128,7 @@ export const messages: Record<Locale, Messages> = {
     rightTitle: 'JSON 2',
     compareOptions: '比较设置',
     caseInsensitive: 'Key 大小写不敏感',
+    sortKeys: '\u6309 Key \u6392\u5e8f\u5bf9\u8c61\u5b57\u6bb5',
     language: '语言',
     formatJson: '格式化 JSON',
     loadSample: '载入示例',
@@ -180,6 +183,7 @@ export const messages: Record<Locale, Messages> = {
     rightTitle: 'JSON 2',
     compareOptions: 'Compare Options',
     caseInsensitive: 'Case-insensitive keys',
+    sortKeys: 'Sort object keys',
     language: 'Language',
     formatJson: 'Format JSON',
     loadSample: 'Load sample',
@@ -234,6 +238,7 @@ export const messages: Record<Locale, Messages> = {
     rightTitle: 'JSON 2',
     compareOptions: '比較設定',
     caseInsensitive: 'キーの大文字小文字を無視',
+    sortKeys: 'Key\u9806\u3067\u30aa\u30d6\u30b8\u30a7\u30af\u30c8\u3092\u4e26\u3079\u66ff\u3048',
     language: '言語',
     formatJson: 'JSON を整形',
     loadSample: 'サンプル読込',
@@ -288,6 +293,7 @@ export const messages: Record<Locale, Messages> = {
     rightTitle: 'JSON 2',
     compareOptions: '비교 설정',
     caseInsensitive: '키 대소문자 무시',
+    sortKeys: 'Key \uAE30\uC900\uC73C\uB85C \uAC1D\uCCB4 \uD56D\uBAA9 \uC815\uB82C',
     language: '언어',
     formatJson: 'JSON 정리',
     loadSample: '샘플 불러오기',

@@ -2,6 +2,7 @@
 
 interface DiffOptions {
   caseInsensitiveKeys: boolean;
+  sortKeys: boolean;
   missingLabel: string;
 }
 
@@ -79,6 +80,47 @@ function hasNodeDifference(node: DiffNode) {
   return node.keyChanged || node.valueChanged;
 }
 
+function shouldCountAsPrimaryDiff(node: DiffNode) {
+  if (!hasNodeDifference(node)) {
+    return false;
+  }
+
+  if (!node.children?.length) {
+    return true;
+  }
+
+  return node.status === 'added' || node.status === 'removed';
+}
+
+function buildObjectKeyOrder(
+  left: Record<string, unknown>,
+  right: Record<string, unknown>,
+  options: DiffOptions,
+) {
+  const orderedKeys: string[] = [];
+  const seen = new Set<string>();
+
+  for (const key of Object.keys(left)) {
+    const normalizedKey = normalizeKey(key, options.caseInsensitiveKeys);
+
+    if (!seen.has(normalizedKey)) {
+      seen.add(normalizedKey);
+      orderedKeys.push(normalizedKey);
+    }
+  }
+
+  for (const key of Object.keys(right)) {
+    const normalizedKey = normalizeKey(key, options.caseInsensitiveKeys);
+
+    if (!seen.has(normalizedKey)) {
+      seen.add(normalizedKey);
+      orderedKeys.push(normalizedKey);
+    }
+  }
+
+  return options.sortKeys ? [...orderedKeys].sort() : orderedKeys;
+}
+
 function diffObjects(
   left: Record<string, unknown>,
   right: Record<string, unknown>,
@@ -96,7 +138,7 @@ function diffObjects(
     rightMap.set(normalizeKey(key, options.caseInsensitiveKeys), key);
   });
 
-  const allKeys = Array.from(new Set([...leftMap.keys(), ...rightMap.keys()])).sort();
+  const allKeys = buildObjectKeyOrder(left, right, options);
 
   return allKeys.map((normalizedKey) => {
     const leftKey = leftMap.get(normalizedKey);
@@ -237,32 +279,26 @@ export function summarizeDiffNodes(node: DiffNode): DiffSummary {
     valueChanged: 0,
   };
 
-  if (hasNodeDifference(node)) {
+  if (shouldCountAsPrimaryDiff(node)) {
     summary.total += 1;
-
-    if (node.status === 'changed') {
-      summary.changed += 1;
-    }
-
-    if (node.status === 'type-changed') {
-      summary.typeChanged += 1;
-    }
 
     if (node.status === 'added') {
       summary.added += 1;
-    }
-
-    if (node.status === 'removed') {
+    } else if (node.status === 'removed') {
       summary.removed += 1;
+    } else if (node.status === 'type-changed') {
+      summary.typeChanged += 1;
+    } else if (node.status === 'changed' || node.keyChanged) {
+      summary.changed += 1;
     }
+  }
 
-    if (node.keyChanged) {
-      summary.keyChanged += 1;
-    }
+  if (node.keyChanged) {
+    summary.keyChanged += 1;
+  }
 
-    if (node.valueChanged) {
-      summary.valueChanged += 1;
-    }
+  if (node.valueChanged) {
+    summary.valueChanged += 1;
   }
 
   if (!node.children?.length) {

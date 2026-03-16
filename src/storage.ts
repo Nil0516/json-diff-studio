@@ -5,6 +5,7 @@ const storageKey = 'json-diff-studio:settings';
 export const defaultSettings: AppSettings = {
   locale: 'zh-TW',
   caseInsensitiveKeys: false,
+  sortKeys: false,
   diffBadgeStyle: 'soft',
   showOnlyDifferences: false,
   searchQuery: '',

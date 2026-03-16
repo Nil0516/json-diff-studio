@@ -50,6 +50,7 @@ function sampleSettings(current: AppSettings): AppSettings {
     ...defaultSettings,
     locale: current.locale,
     caseInsensitiveKeys: current.caseInsensitiveKeys,
+    sortKeys: current.sortKeys,
     diffBadgeStyle: current.diffBadgeStyle,
     showOnlyDifferences: current.showOnlyDifferences,
     searchQuery: current.searchQuery,
@@ -158,6 +159,10 @@ function getMarker(status: DiffNode["status"]) {
   }
 
   return "";
+}
+
+function shouldEmphasizeValue(node: DiffNode) {
+  return node.status === "changed" || node.status === "type-changed";
 }
 
 function renderKeyPrefix(
@@ -372,7 +377,7 @@ function buildJsonLines(
           {keyPrefix}
           {renderHighlightedText(
             `${formatInlineValue(value)}${suffix}`,
-            node.valueChanged ? "json-value value-emphasis" : "json-value",
+            shouldEmphasizeValue(node) ? "json-value value-emphasis" : "json-value",
             normalizedQuery,
           )}
         </>
@@ -910,6 +915,7 @@ export default function App() {
         errors: {} as JsonErrorState,
         parsedResult: diffValue(leftValue, rightValue, "root", {
           caseInsensitiveKeys: settings.caseInsensitiveKeys,
+          sortKeys: settings.sortKeys,
           missingLabel: t(locale, "missing"),
         }),
       };
@@ -940,6 +946,7 @@ export default function App() {
   }, [
     locale,
     settings.caseInsensitiveKeys,
+    settings.sortKeys,
     settings.leftInput,
     settings.rightInput,
   ]);
@@ -956,6 +963,7 @@ export default function App() {
     settings.leftInput,
     settings.rightInput,
     settings.caseInsensitiveKeys,
+    settings.sortKeys,
     settings.showOnlyDifferences,
     settings.searchQuery,
   ]);
@@ -997,9 +1005,6 @@ export default function App() {
     });
   }
 
-  function resetPanelHeight() {
-    updateSettings({ panelHeight: defaultSettings.panelHeight });
-  }
 
   function requestNavigation(direction: "prev" | "next") {
     setNavigationRequest((current) => ({
@@ -1202,13 +1207,6 @@ export default function App() {
               </button>
               <button
                 type="button"
-                className="ghost action-btn"
-                onClick={resetPanelHeight}
-              >
-                {t(locale, "resetHeight")}
-              </button>
-              <button
-                type="button"
                 className="action-btn"
                 onClick={() => setIsFullscreen((current) => !current)}
               >
@@ -1334,6 +1332,18 @@ export default function App() {
                     }
                   />
                   <span>{t(locale, "caseInsensitive")}</span>
+                </label>
+                <label className="toolbar-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.sortKeys}
+                    onChange={(event) =>
+                      updateSettings({
+                        sortKeys: event.target.checked,
+                      })
+                    }
+                  />
+                  <span>{t(locale, "sortKeys")}</span>
                 </label>
               </section>
               <section className="settings-section">
