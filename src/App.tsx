@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode, UIEvent } from "react";
 import { getPrimaryDiffKind, summarizeDiffNodes, diffValue } from "./diff";
 import { localeOptions, t } from "./i18n";
@@ -25,9 +25,9 @@ interface HighlightState {
   token: number;
 }
 
-const minPanelHeight = 420;
-const maxPanelHeight = 1100;
-const panelHeightStep = 120;
+const comparePanelHeight = 1100;
+const minEditorHeight = 360;
+const maxEditorHeight = 1200;
 
 function safeParseJson(input: string) {
   if (!input.trim()) {
@@ -42,8 +42,8 @@ function formatJsonInput(input: string) {
   return JSON.stringify(parsed, null, 2);
 }
 
-function clampPanelHeight(height: number) {
-  return Math.min(maxPanelHeight, Math.max(minPanelHeight, height));
+function clampEditorHeight(height: number) {
+  return Math.min(maxEditorHeight, Math.max(minEditorHeight, height));
 }
 
 function sampleSettings(current: AppSettings): AppSettings {
@@ -57,7 +57,7 @@ function sampleSettings(current: AppSettings): AppSettings {
     diffBadgeStyle: current.diffBadgeStyle,
     showOnlyDifferences: current.showOnlyDifferences,
     searchQuery: current.searchQuery,
-    panelHeight: current.panelHeight,
+    editorHeight: current.editorHeight,
   };
 }
 
@@ -219,7 +219,7 @@ function CollapseToggle({
       onClick={onToggle}
       aria-label={collapsed ? "Expand" : "Collapse"}
     >
-      {collapsed ? "▸" : "▾"}
+      {collapsed ? "?" : "?"}
     </button>
   );
 }
@@ -1059,10 +1059,49 @@ export default function App() {
     localeOptions.find((option) => option.value === settings.locale) ??
     localeOptions[0];
   const localeMenuRef = useRef<HTMLDivElement | null>(null);
+  const leftEditorRef = useRef<HTMLTextAreaElement | null>(null);
+  const rightEditorRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    const editors = [leftEditorRef.current, rightEditorRef.current].filter(
+      (editor): editor is HTMLTextAreaElement => editor !== null,
+    );
+
+    if (!editors.length) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const nextHeight = clampEditorHeight(
+        Math.round(
+          Math.max(
+            ...entries.map((entry) => entry.target.getBoundingClientRect().height),
+          ),
+        ),
+      );
+
+      setSettings((current) => {
+        if (Math.abs(nextHeight - current.editorHeight) < 2) {
+          return current;
+        }
+
+        return {
+          ...current,
+          editorHeight: nextHeight,
+        };
+      });
+    });
+
+    editors.forEach((editor) => resizeObserver.observe(editor));
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow =
@@ -1201,11 +1240,6 @@ export default function App() {
     });
   }
 
-  function adjustPanelHeight(delta: number) {
-    updateSettings({
-      panelHeight: clampPanelHeight(settings.panelHeight + delta),
-    });
-  }
 
 
   function requestNavigation(direction: "prev" | "next") {
@@ -1258,7 +1292,10 @@ export default function App() {
   return (
     <div
       className={`app-shell diff-style-${settings.diffBadgeStyle}`}
-      style={{ ["--panel-height" as string]: `${settings.panelHeight}px` }}
+      style={{
+        ["--editor-height" as string]: `${settings.editorHeight}px`,
+        ["--compare-panel-height" as string]: `${comparePanelHeight}px`,
+      }}
     >
       <header className="hero">
         <div className="hero-bar">
@@ -1358,6 +1395,8 @@ export default function App() {
               </button>
             </div>
             <textarea
+              ref={leftEditorRef}
+              style={{ height: `${settings.editorHeight}px` }}
               value={settings.leftInput}
               onChange={(event) =>
                 updateSettings({ leftInput: event.target.value })
@@ -1384,6 +1423,8 @@ export default function App() {
               </button>
             </div>
             <textarea
+              ref={rightEditorRef}
+              style={{ height: `${settings.editorHeight}px` }}
               value={settings.rightInput}
               onChange={(event) =>
                 updateSettings({ rightInput: event.target.value })
@@ -1414,9 +1455,6 @@ export default function App() {
               </p>
             </div>
             <div className="result-actions">
-              <span className="height-readout">
-                {t(locale, "panelHeight")}: {settings.panelHeight}px
-              </span>
               <button
                 type="button"
                 className="ghost action-btn"
@@ -1433,20 +1471,7 @@ export default function App() {
               >
                 {t(locale, "nextDiff")}
               </button>
-              <button
-                type="button"
-                className="ghost action-btn"
-                onClick={() => adjustPanelHeight(-panelHeightStep)}
-              >
-                {t(locale, "smaller")}
-              </button>
-              <button
-                type="button"
-                className="ghost action-btn"
-                onClick={() => adjustPanelHeight(panelHeightStep)}
-              >
-                {t(locale, "larger")}
-              </button>
+
               <button
                 type="button"
                 className="action-btn"
@@ -1719,6 +1744,8 @@ export default function App() {
     </div>
   );
 }
+
+
 
 
 

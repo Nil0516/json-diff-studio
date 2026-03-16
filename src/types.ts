@@ -17,7 +17,7 @@ export interface AppSettings {
   diffFilter: DiffFilter;
   showOnlyDifferences: boolean;
   searchQuery: string;
-  panelHeight: number;
+  editorHeight: number;
   leftInput: string;
   rightInput: string;
 }
@@ -40,3 +40,4 @@ export interface DiffNode {
   rightDisplay: string;
   children?: DiffNode[];
 }
+

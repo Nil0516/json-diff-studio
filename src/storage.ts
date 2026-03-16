@@ -1,4 +1,4 @@
-﻿import type { AppSettings } from './types';
+import type { AppSettings } from './types';
 
 const storageKey = 'json-diff-studio:settings';
 
@@ -10,7 +10,7 @@ export const defaultSettings: AppSettings = {
   diffFilter: 'all',
   showOnlyDifferences: false,
   searchQuery: '',
-  panelHeight: 560,
+  editorHeight: 420,
   leftInput:
     '{\n  "Name": "Nil",\n  "profile": {\n    "age": 29,\n    "city": "New Taipei City"\n  },\n  "tags": ["backend", "json", "DevOps"]\n}',
   rightInput:
@@ -47,3 +47,4 @@ export function saveSettings(settings: AppSettings) {
 
   window.localStorage.setItem(storageKey, JSON.stringify(settings));
 }
+

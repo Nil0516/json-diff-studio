@@ -67,6 +67,7 @@ select {
 
 textarea {
   min-height: 360px;
+  height: var(--editor-height, 420px);
   padding: 1rem;
   resize: vertical;
   line-height: 1.6;
@@ -579,7 +580,7 @@ code {
   border-radius: 20px;
   overflow: hidden;
   background: #2f3136;
-  height: min(70vh, var(--panel-height, 560px));
+  height: var(--compare-panel-height, 1100px);
   min-height: 420px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -658,15 +659,15 @@ code {
 
 .minimap-line.status-changed,
 .minimap-line.status-type-changed {
-  background: rgba(255, 191, 73, 0.62);
+  background: rgba(255, 202, 102, 0.78);
 }
 
 .minimap-line.status-added {
-  background: rgba(64, 214, 112, 0.58);
+  background: rgba(88, 226, 133, 0.74);
 }
 
 .minimap-line.status-removed {
-  background: rgba(255, 95, 86, 0.58);
+  background: rgba(255, 120, 112, 0.74);
 }
 
 .minimap-viewport {
@@ -735,15 +736,15 @@ code {
 
 .code-line-content.status-changed,
 .code-line-content.status-type-changed {
-  background: rgba(242, 168, 44, 0.24);
+  background: rgba(255, 196, 87, 0.32);
 }
 
 .code-line-content.status-added {
-  background: rgba(118, 185, 143, 0.2);
+  background: rgba(114, 214, 151, 0.28);
 }
 
 .code-line-content.status-removed {
-  background: rgba(244, 109, 82, 0.22);
+  background: rgba(255, 126, 110, 0.28);
 }
 
 .code-line.flash-active .code-line-content,
@@ -812,26 +813,26 @@ code {
 }
 
 .diff-style-soft .key-emphasis {
-  background: rgba(84, 166, 255, 0.18);
+  background: rgba(102, 182, 255, 0.28);
   border-radius: 4px;
   padding: 0 2px;
 }
 
 .diff-style-soft .value-emphasis {
-  background: rgba(242, 168, 44, 0.28);
+  background: rgba(255, 196, 87, 0.34);
   border-radius: 4px;
   padding: 0 2px;
 }
 
 .diff-style-solid .key-emphasis {
-  background: rgba(71, 157, 255, 0.34);
+  background: rgba(88, 170, 255, 0.48);
   color: #eef6ff;
   border-radius: 4px;
   padding: 0 2px;
 }
 
 .diff-style-solid .value-emphasis {
-  background: rgba(189, 89, 10, 0.38);
+  background: rgba(214, 112, 24, 0.52);
   color: #fff3e8;
   border-radius: 4px;
   padding: 0 2px;
@@ -983,7 +984,7 @@ code {
   }
 
   .code-panel {
-    height: min(52vh, var(--panel-height, 560px));
+    height: var(--compare-panel-height, 1100px);
     min-height: 360px;
   }
 
@@ -996,6 +997,10 @@ code {
     height: calc(100vh - 260px);
   }
 }
+
+
+
+
 
 
 
