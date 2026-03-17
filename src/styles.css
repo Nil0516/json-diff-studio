@@ -70,6 +70,8 @@ textarea {
   height: var(--editor-height, 420px);
   padding: 1rem;
   resize: vertical;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.95rem;
   line-height: 1.6;
 }
 
@@ -997,6 +999,7 @@ code {
     height: calc(100vh - 260px);
   }
 }
+
 
 
 

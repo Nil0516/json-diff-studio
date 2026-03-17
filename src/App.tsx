@@ -219,7 +219,7 @@ function CollapseToggle({
       onClick={onToggle}
       aria-label={collapsed ? "Expand" : "Collapse"}
     >
-      {collapsed ? "?" : "?"}
+      {collapsed ? ">" : "v"}
     </button>
   );
 }
@@ -1744,6 +1744,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
