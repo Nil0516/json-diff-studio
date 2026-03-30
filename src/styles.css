@@ -711,7 +711,7 @@ code {
 
 .code-line-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-height: 34px;
   padding: 0 14px;
   color: #f3f4f6;
@@ -799,6 +799,19 @@ code {
 .json-value,
 .json-punct {
   color: inherit;
+}
+
+.json-key,
+.json-punct {
+  flex: 0 0 auto;
+  white-space: pre;
+}
+
+.json-value {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .json-placeholder {
