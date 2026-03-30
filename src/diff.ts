@@ -76,14 +76,25 @@ function comparePrimitive(left: unknown, right: unknown): DiffStatus {
   return 'changed';
 }
 
-function hasNodeDifference(node: DiffNode) {
-  return node.keyChanged || node.valueChanged;
+export function hasVisibleKeyDifference(
+  node: DiffNode,
+  caseInsensitiveKeys: boolean,
+) {
+  return !caseInsensitiveKeys && node.keyChanged;
+}
+
+export function hasVisibleDifference(
+  node: DiffNode,
+  caseInsensitiveKeys: boolean,
+) {
+  return hasVisibleKeyDifference(node, caseInsensitiveKeys) || node.valueChanged;
 }
 
 export function getPrimaryDiffKind(
   node: DiffNode,
+  caseInsensitiveKeys = false,
 ): Exclude<DiffFilter, 'all'> | null {
-  if (!hasNodeDifference(node)) {
+  if (!hasVisibleDifference(node, caseInsensitiveKeys)) {
     return null;
   }
 
@@ -95,7 +106,7 @@ export function getPrimaryDiffKind(
     return 'removed';
   }
 
-  if (node.keyChanged) {
+  if (hasVisibleKeyDifference(node, caseInsensitiveKeys)) {
     return 'changed';
   }
 
@@ -106,8 +117,8 @@ export function getPrimaryDiffKind(
   return null;
 }
 
-function shouldCountAsPrimaryDiff(node: DiffNode) {
-  return getPrimaryDiffKind(node) !== null;
+function shouldCountAsPrimaryDiff(node: DiffNode, caseInsensitiveKeys: boolean) {
+  return getPrimaryDiffKind(node, caseInsensitiveKeys) !== null;
 }
 
 function buildObjectKeyOrder(
@@ -353,7 +364,9 @@ export function diffValue(
 
   if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
     const children = diffArrays(leftValue, rightValue, path, options);
-    const valueChanged = children.some(hasNodeDifference);
+    const valueChanged = children.some((child) =>
+      hasVisibleDifference(child, options.caseInsensitiveKeys),
+    );
 
     return {
       path,
@@ -372,7 +385,9 @@ export function diffValue(
 
   if (isPlainObject(leftValue) && isPlainObject(rightValue)) {
     const children = diffObjects(leftValue, rightValue, path, options);
-    const valueChanged = children.some(hasNodeDifference);
+    const valueChanged = children.some((child) =>
+      hasVisibleDifference(child, options.caseInsensitiveKeys),
+    );
 
     return {
       path,
@@ -407,10 +422,13 @@ export function diffValue(
 }
 
 export function nodeHasDifference(node: DiffNode): boolean {
-  return hasNodeDifference(node);
+  return hasVisibleDifference(node, false);
 }
 
-export function summarizeDiffNodes(node: DiffNode): DiffSummary {
+export function summarizeDiffNodes(
+  node: DiffNode,
+  caseInsensitiveKeys = false,
+): DiffSummary {
   const summary: DiffSummary = {
     total: 0,
     changed: 0,
@@ -421,10 +439,10 @@ export function summarizeDiffNodes(node: DiffNode): DiffSummary {
     valueChanged: 0,
   };
 
-  if (shouldCountAsPrimaryDiff(node)) {
+  if (shouldCountAsPrimaryDiff(node, caseInsensitiveKeys)) {
     summary.total += 1;
 
-    const primaryDiffKind = getPrimaryDiffKind(node);
+    const primaryDiffKind = getPrimaryDiffKind(node, caseInsensitiveKeys);
 
     if (primaryDiffKind === 'added') {
       summary.added += 1;
@@ -437,7 +455,7 @@ export function summarizeDiffNodes(node: DiffNode): DiffSummary {
     }
   }
 
-  if (node.keyChanged) {
+  if (hasVisibleKeyDifference(node, caseInsensitiveKeys)) {
     summary.keyChanged += 1;
   }
 
@@ -450,7 +468,7 @@ export function summarizeDiffNodes(node: DiffNode): DiffSummary {
   }
 
   for (const child of node.children) {
-    const childSummary = summarizeDiffNodes(child);
+    const childSummary = summarizeDiffNodes(child, caseInsensitiveKeys);
     summary.total += childSummary.total;
     summary.changed += childSummary.changed;
     summary.typeChanged += childSummary.typeChanged;

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode, UIEvent } from "react";
-import { getPrimaryDiffKind, summarizeDiffNodes, diffValue } from "./diff";
+import {
+  diffValue,
+  getPrimaryDiffKind,
+  hasVisibleKeyDifference,
+  summarizeDiffNodes,
+} from "./diff";
 import { localeOptions, t } from "./i18n";
 import { defaultSettings, loadSettings, saveSettings } from "./storage";
 import type { AppSettings, DiffFilter, DiffNode, JsonErrorState, Locale } from "./types";
@@ -148,12 +153,15 @@ function renderHighlightedText(text: string, className: string, normalizedQuery:
   return <span className={className}>{segments}</span>;
 }
 
-function getDisplayStatus(node: DiffNode): DiffNode["status"] {
+function getDisplayStatus(
+  node: DiffNode,
+  caseInsensitiveKeys: boolean,
+): DiffNode["status"] {
   if (node.status !== "equal") {
     return node.status;
   }
 
-  return node.keyChanged ? "changed" : "equal";
+  return hasVisibleKeyDifference(node, caseInsensitiveKeys) ? "changed" : "equal";
 }
 
 function getMarker(status: DiffNode["status"]) {
@@ -180,12 +188,17 @@ function nodeHasVisibleDifference(
   node: DiffNode,
   caseInsensitiveKeys: boolean,
 ) {
-  const keyDifference = caseInsensitiveKeys ? false : node.keyChanged;
-  return keyDifference || node.valueChanged;
+  return hasVisibleKeyDifference(node, caseInsensitiveKeys) || node.valueChanged;
 }
 
-function matchesDiffFilter(node: DiffNode, diffFilter: DiffFilter) {
-  return diffFilter === "all" || getPrimaryDiffKind(node) === diffFilter;
+function matchesDiffFilter(
+  node: DiffNode,
+  diffFilter: DiffFilter,
+  caseInsensitiveKeys: boolean,
+) {
+  return (
+    diffFilter === "all" || getPrimaryDiffKind(node, caseInsensitiveKeys) === diffFilter
+  );
 }
 
 function renderKeyPrefix(
@@ -245,7 +258,11 @@ function shouldIncludeNode(
   const passesDiffToggle =
     !showOnlyDifferences || nodeHasVisibleDifference(node, caseInsensitiveKeys);
   const matchesSearch = nodeMatchesSearch(node, normalizedQuery);
-  const passesPrimaryFilter = matchesDiffFilter(node, diffFilter);
+  const passesPrimaryFilter = matchesDiffFilter(
+    node,
+    diffFilter,
+    caseInsensitiveKeys,
+  );
 
   return (passesDiffToggle && matchesSearch && passesPrimaryFilter) || childMatch;
 }
@@ -273,10 +290,10 @@ function buildJsonLines(
   const keyPrefix = renderKeyPrefix(
     key,
     isArrayItem,
-    node.keyChanged,
+    hasVisibleKeyDifference(node, caseInsensitiveKeys),
     normalizedQuery,
   );
-  const displayStatus = getDisplayStatus(node);
+  const displayStatus = getDisplayStatus(node, caseInsensitiveKeys);
   const visibleChildren = node.children?.filter((child) =>
     shouldIncludeNode(
       child,
@@ -287,7 +304,7 @@ function buildJsonLines(
     ),
   );
   const isSearchMatch = nodeMatchesSearch(node, normalizedQuery);
-  const primaryDiffKind = getPrimaryDiffKind(node);
+  const primaryDiffKind = getPrimaryDiffKind(node, caseInsensitiveKeys);
 
   if (value === undefined) {
     return [
@@ -319,9 +336,11 @@ function buildJsonLines(
 
   if (Array.isArray(value) && visibleChildren?.length) {
     const containerStatus =
-      node.status === "added" || node.status === "removed" || node.keyChanged
+      node.status === "added" || node.status === "removed"
         ? node.status
-        : "equal";
+        : hasVisibleKeyDifference(node, caseInsensitiveKeys)
+          ? "changed"
+          : "equal";
     const isCollapsed = collapsedPaths.has(node.path);
     const openLine: JsonLine = {
       marker: getMarker(containerStatus),
@@ -381,9 +400,11 @@ function buildJsonLines(
 
   if (isObjectValue(value) && visibleChildren?.length) {
     const containerStatus =
-      node.status === "added" || node.status === "removed" || node.keyChanged
+      node.status === "added" || node.status === "removed"
         ? node.status
-        : "equal";
+        : hasVisibleKeyDifference(node, caseInsensitiveKeys)
+          ? "changed"
+          : "equal";
     const isCollapsed = collapsedPaths.has(node.path);
     const propertyCount = Object.keys(value).length;
     const openLine: JsonLine = {
@@ -1181,7 +1202,9 @@ export default function App() {
   ]);
 
   const { errors, parsedResult } = comparisonState;
-  const diffSummary = parsedResult ? summarizeDiffNodes(parsedResult) : null;
+  const diffSummary = parsedResult
+    ? summarizeDiffNodes(parsedResult, settings.caseInsensitiveKeys)
+    : null;
   const diffCount = diffSummary?.total ?? 0;
   const changedCount = (diffSummary?.changed ?? 0) + (diffSummary?.typeChanged ?? 0);
   const filterCounts = {
